@@ -65,7 +65,7 @@ export class RedisStorage {
    */
   public async addMessage(key: string, value: RedisMessage): Promise<void> {
     try {
-      const messages = (await this.get(key)) || [];
+      const messages = (await this.getMessages(key)) || [];
       messages.push(value);
 
       await this.client.set(key, JSON.stringify(messages));
@@ -79,7 +79,7 @@ export class RedisStorage {
    * Retrieve data from Redis
    * @param key - The key to retrieve data from
    */
-  public async get(key: string): Promise<RedisMessage[] | null> {
+  public async getMessages(key: string): Promise<RedisMessage[] | null> {
     try {
       const value = await this.client.get(key);
 
