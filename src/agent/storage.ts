@@ -1,5 +1,4 @@
-import { createClient, RedisClientType } from 'redis';
-import { type RedisMessage } from './types/index.js';
+import { createClient, RedisClientType } from "redis";
 
 /**
  * Redis storage configuration and helper methods
@@ -10,21 +9,21 @@ export class RedisStorage {
 
   constructor(
     private host: string = process.env.REDIS_HOST || 'localhost',
-    private port: number = parseInt(process.env.REDIS_PORT || '6379'),
+    private port: number = Number.parseInt(process.env.REDIS_PORT || '6379'),
     private password: string = process.env.REDIS_PASSWORD || '',
   ) {
     this.client = createClient({
       url: `redis://${this.host}:${this.port}`,
-      password: this.password,
+      password: this.password
     });
 
-    this.client.on('error', (err) => {
-      console.error('Redis Client Error:', err);
+    this.client.on("error", (err) => {
+      console.error("Redis Client Error:", err);
       this.isConnected = false;
     });
 
-    this.client.on('connect', () => {
-      console.log('Redis client connected');
+    this.client.on("connect", () => {
+      console.log("Redis client connected");
       this.isConnected = true;
     });
   }
@@ -33,7 +32,7 @@ export class RedisStorage {
    * Connect to Redis server
    */
   public async connect(): Promise<void> {
-    if (!this.isConnected) {
+    if (!this.client.isOpen) {
       try {
         await this.client.connect();
       } catch (error) {
@@ -63,7 +62,7 @@ export class RedisStorage {
    * @param key - The key to store data under
    * @param value - The data to store (will be JSON stringified)
    */
-  public async addMessage(key: string, value: RedisMessage): Promise<void> {
+  public async addMessage(key: string, value: any): Promise<void> {
     try {
       const messages = (await this.getMessages(key)) || [];
       messages.push(value);
