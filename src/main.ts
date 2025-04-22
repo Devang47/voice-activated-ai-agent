@@ -1,8 +1,13 @@
 import express, { Request, Response } from 'express';
 import http from 'http';
 import cors from 'cors';
-import { WebSocketServer, WebSocket } from 'ws';
-import { RedisStorage } from './storage.ts';
+import { WebSocketServer } from 'ws';
+import { RedisStorage } from './storage.js';
+import { handleWSConnection } from './ai/index.js';
+import dotenv from 'dotenv';
+import { logger } from './utils/logger.ts';
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT ?? 3000;
@@ -24,25 +29,11 @@ const storage = new RedisStorage();
 
 const wss = new WebSocketServer({ server });
 
-wss.on('connection', (ws: WebSocket) => {
-  console.log('Client connected');
-
-  ws.on('message', (message: Buffer) => {
-    console.log('Received:', message.toString());
-
-    ws.send(`Server received: ${message}`);
-  });
-
-  ws.on('close', () => {
-    console.log('Client disconnected');
-  });
-
-  ws.send('Connected to Voice AI Agent WebSocket Server');
-});
+wss.on('connection', handleWSConnection);
 
 server.listen(PORT, async () => {
   await storage.connect();
 
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`WebSocket server running on ws://localhost:${PORT}`);
+  logger.info(`Server running on http://localhost:${PORT}`);
+  logger.info(`WebSocket server running on ws://localhost:${PORT}`);
 });
