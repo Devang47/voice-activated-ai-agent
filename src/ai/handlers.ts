@@ -9,7 +9,7 @@ import {
 import { tools } from './tools.ts';
 import { instructions } from './constants.ts';
 import { logger } from '../utils/logger.ts';
-import { getWeatherData, sendEmail } from './toolFunctions.ts';
+import { getWeatherData, sendEmail } from './functions.ts';
 
 export const handleNewMessage = async (
   message: WebSocket.RawData,
@@ -108,7 +108,7 @@ export const handleNewMessage = async (
             content: messageData.content,
           },
           assistantMessage,
-          ...(validToolResults as any[]), // Type assertion to handle the tool messages
+          ...validToolResults, // Type assertion to handle the tool messages
         ],
         temperature: 1,
         max_completion_tokens: 1024,
