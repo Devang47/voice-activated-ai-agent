@@ -30,6 +30,7 @@
   },
   "scripts": {
     "dev": "nodemon --exec \"node --loader ts-node/esm\" src/main.ts",
+    "front": "nodemon --exec \"node --loader ts-node/esm\" src/frontend/main.ts",
     "start": "node build/src/main.js",
     "clean": "rimraf coverage build tmp",
     "prebuild": "npm run lint",
