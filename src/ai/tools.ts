@@ -11,19 +11,20 @@ export const tools: ChatCompletionTool[] = [
         properties: {
           location: {
             type: 'string',
-            description: 'The city and state or country, e.g., "San Francisco, CA" or "Paris, France"',
+            description:
+              'The city and state or country, e.g., "San Francisco, CA" or "Paris, France"',
           },
           unit: {
             type: 'string',
             enum: ['celsius', 'fahrenheit'],
             description: 'The unit of temperature to use. Default is celsius.',
-          }
+          },
         },
         required: ['location'],
         additionalProperties: false,
       },
       strict: true,
-    }
+    },
   },
   // Keep your existing send_email tool here
   {

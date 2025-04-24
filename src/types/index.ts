@@ -30,4 +30,4 @@ export type EmailResponse = {
     timestamp: string;
   };
   error?: string;
-}
+};
