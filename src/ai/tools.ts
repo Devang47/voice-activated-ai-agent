@@ -4,6 +4,31 @@ export const tools: ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
+      name: 'get_weather',
+      description: 'Get the current weather for a location',
+      parameters: {
+        type: 'object',
+        properties: {
+          location: {
+            type: 'string',
+            description: 'The city and state or country, e.g., "San Francisco, CA" or "Paris, France"',
+          },
+          unit: {
+            type: 'string',
+            enum: ['celsius', 'fahrenheit'],
+            description: 'The unit of temperature to use. Default is celsius.',
+          }
+        },
+        required: ['location'],
+        additionalProperties: false,
+      },
+      strict: true,
+    }
+  },
+  // Keep your existing send_email tool here
+  {
+    type: 'function',
+    function: {
       name: 'send_email',
       description:
         'Send an email to a given recipient with a email, subject and message.',
