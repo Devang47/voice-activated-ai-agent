@@ -140,3 +140,5 @@ build
 Thumbs.db
 
 dump.rdb
+
+pnpm-lock.yaml
