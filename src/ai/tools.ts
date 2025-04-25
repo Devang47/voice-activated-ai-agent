@@ -101,12 +101,7 @@ export const tools: ChatCompletionTool[] = [
             description: 'Time zone (default: America/Los_Angeles)',
           },
         },
-        required: [
-          'clientName',
-          'clientEmail',
-          'date',
-          'startTime',
-        ],
+        required: ['clientName', 'clientEmail', 'date', 'startTime'],
         additionalProperties: false,
       },
       strict: true,
