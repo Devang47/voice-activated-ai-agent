@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
-import { EmailResponse } from '../../types/index.ts';
-import { logger } from '../../utils/logger.ts';
-import dotenv from "dotenv";
+import { EmailResponse } from '../types/index.ts';
+import { logger } from '../utils/logger.ts';
+import dotenv from 'dotenv';
 
 dotenv.config();
 
