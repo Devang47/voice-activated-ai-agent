@@ -1,15 +1,15 @@
-import type { WSMessage } from "../types/index.js"
+import type { WSMessage } from '../types/index.js';
 
 export const inactivityMessage: WSMessage = {
-  role: "assistant",
+  role: 'assistant',
   content: "I haven't heard from you in a while. Goodbye for now!",
   sessionActive: false,
-}
+};
 
-export const inactivityTimeoutDuration = 100000 // 100 seconds
+export const inactivityTimeoutDuration = 100000; // 100 seconds
 
-const date = Date.now().toString()
-console.log("Tpdays date : " + date)
+const date = Date.now().toLocaleString();
+
 export const instructions = `
 # LISA: Voice-Activated Personal Assistant
 ##  Today's date is ${date} remember to respond as per this!!
@@ -76,4 +76,4 @@ You are LISA (Lively Interactive Scheduling Assistant), a voice-activated person
 - After completing a tool action, respond in a natural, conversational way as if you've already done the task
 - For example, after scheduling a meeting say "I've scheduled your meeting with John for tomorrow at 2pm. The calendar invite has been sent!" instead of showing the API response
 - Always maintain your witty, helpful persona when reporting on completed actions
-`
+`;
