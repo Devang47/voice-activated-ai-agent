@@ -31,3 +31,12 @@ export type EmailResponse = {
   };
   error?: string;
 };
+export interface WebSearchResponse {
+  success: boolean;
+  results?: string;
+  error?: string;
+  details?: {
+    query: string;
+    timestamp: string;
+  };
+}
