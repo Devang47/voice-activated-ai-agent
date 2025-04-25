@@ -6,6 +6,7 @@ import { RedisStorage } from './storage.js';
 import { handleWSConnection } from './ai/index.js';
 import dotenv from 'dotenv';
 import { logger } from './utils/logger.ts';
+import os from 'os';
 
 dotenv.config();
 
@@ -31,9 +32,28 @@ const wss = new WebSocketServer({ server });
 
 wss.on('connection', handleWSConnection);
 
+// Function to get local IP address
+const getLocalIpAddress = (): string => {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name] || []) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return '127.0.0.1'; // Default to localhost if no interface is found
+};
+
 server.listen(PORT, async () => {
   await storage.connect();
 
-  logger.info(`Server running on http://localhost:${PORT}`);
-  logger.info(`WebSocket server running on ws://localhost:${PORT}`);
+  const localIp = getLocalIpAddress();
+
+  logger.info(
+    `Server running on \n http://localhost:${PORT} \n http://${localIp}:${PORT}`,
+  );
+  logger.info(
+    `WebSocket server running on \n ws://localhost:${PORT} \n ws://${localIp}:${PORT}`,
+  );
 });

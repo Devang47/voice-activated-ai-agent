@@ -29,7 +29,7 @@ export const handleNewMessage = async (
   const currentSession = sessionManager.get();
   const aiClient = getOpenAiClient();
   const prevMessages = (await storage.getMessages(currentSession)) ?? [];
-  
+
   try {
     const messageData: WSMessage = JSON.parse(message.toString());
     if (!messageData.content) {
@@ -38,50 +38,52 @@ export const handleNewMessage = async (
       return;
     }
 
+    console.log('User:', messageData.content);
+
     // Check for authentication if needed
-    if (
-      !sessionManager.isAuthenticated() &&
-      !messageData.content.toLowerCase().includes('248142')
-    ) {
-      // If not authenticated and message doesn't contain password
-      if (messageData.content.toLowerCase().includes('hey lisa')) {
-        // If greeting is correct, ask for password
-        ws.send(
-          JSON.stringify({
-            role: 'assistant',
-            content:
-              'Hello! For security purposes, please provide your password.',
-            sessionActive: true,
-          }),
-        );
-        return;
-      } else {
-        // If no greeting, prompt for correct greeting
-        ws.send(
-          JSON.stringify({
-            role: 'assistant',
-            content: "I'm waiting for you to greet me properly.",
-            sessionActive: true,
-          }),
-        );
-        return;
-      }
-    } else if (
-      !sessionManager.isAuthenticated() &&
-      messageData.content.includes('248142')
-    ) {
-      // Password provided, authenticate
-      sessionManager.authenticate();
-      ws.send(
-        JSON.stringify({
-          role: 'assistant',
-          content:
-            "Hey Robin! I'm now ready to assist you. What can I help you with today?",
-          sessionActive: true,
-        }),
-      );
-      return;
-    }
+    // if (
+    //   !sessionManager.isAuthenticated() &&
+    //   !messageData.content.toLowerCase().includes('248142')
+    // ) {
+    //   // If not authenticated and message doesn't contain password
+    //   if (messageData.content.toLowerCase().includes('hey lisa')) {
+    //     // If greeting is correct, ask for password
+    //     ws.send(
+    //       JSON.stringify({
+    //         role: 'assistant',
+    //         content:
+    //           'Hello! For security purposes, please provide your password.',
+    //         sessionActive: true,
+    //       }),
+    //     );
+    //     return;
+    //   } else {
+    //     // If no greeting, prompt for correct greeting
+    //     ws.send(
+    //       JSON.stringify({
+    //         role: 'assistant',
+    //         content: "I'm waiting for you to greet me properly.",
+    //         sessionActive: true,
+    //       }),
+    //     );
+    //     return;
+    //   }
+    // } else if (
+    //   !sessionManager.isAuthenticated() &&
+    //   messageData.content.includes('248142')
+    // ) {
+    //   // Password provided, authenticate
+    //   sessionManager.authenticate();
+    //   ws.send(
+    //     JSON.stringify({
+    //       role: 'assistant',
+    //       content:
+    //         "Hey Robin! I'm now ready to assist you. What can I help you with today?",
+    //       sessionActive: true,
+    //     }),
+    //   );
+    //   return;
+    // }
 
     const response = await aiClient.chat.completions.create({
       model: 'llama-3.1-8b-instant',
@@ -119,6 +121,11 @@ export const handleNewMessage = async (
         },
       ]);
 
+      console.log(
+        'Assistant:',
+        assistantMessage.content || "I'm working on that for you now...",
+      );
+
       // Send an immediate response to the user that we're processing their request
       ws.send(
         JSON.stringify({
@@ -133,15 +140,6 @@ export const handleNewMessage = async (
       type ToolCallParam = ChatCompletionToolMessageParam & {
         name: string;
       };
-
-      ws.send(
-        JSON.stringify({
-          role: 'assistant',
-          content:
-            assistantMessage.content || "I'm working on that for you now...",
-          sessionActive: true,
-        }),
-      );
 
       // Process each tool call
       const toolResults: ToolCallParam[] = await Promise.all(
@@ -188,7 +186,7 @@ export const handleNewMessage = async (
               functionArgs.maxResults,
             );
           } else if (functionName === 'web_search') {
-            console.log("Web searched triggered\n");
+            console.log('Web searched triggered\n');
             content = await performWebSearch(functionArgs.query);
           }
 
@@ -256,6 +254,11 @@ export const handleNewMessage = async (
 
       await storage.addMessage(currentSession, storageMessages);
 
+      console.log(
+        toolResponseMessage.choices[0].message.content ||
+          "I've completed that task for you!",
+      );
+
       // Send the final response to the client
       ws.send(
         JSON.stringify({
@@ -267,6 +270,8 @@ export const handleNewMessage = async (
         }),
       );
     } else {
+      console.log('Assistant:', response.choices[0].message.content);
+
       // Regular response handling (no tool calls)
       await storage.addMessage(currentSession, [
         {
@@ -290,6 +295,13 @@ export const handleNewMessage = async (
 
     startInactivityTimer(ws);
   } catch (error) {
+    console.log(
+      'Assistant:',
+      "I'm having trouble processing your request. Could you try again?",
+    );
+
+    console.log('Error:', error);
+
     ws.send(
       JSON.stringify({
         role: 'assistant',
