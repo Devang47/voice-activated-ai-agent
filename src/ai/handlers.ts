@@ -9,7 +9,11 @@ import {
 import { tools } from './tools.ts';
 import { instructions } from './constants.ts';
 import { logger } from '../utils/logger.ts';
-import { getWeatherData, sendEmail } from '../functions/index.ts';
+import {
+  getWeatherData,
+  sendEmail,
+  performWebSearch,
+} from '../functions/index.ts';
 import {
   cancelMeeting,
   getUpcomingMeetings,
@@ -24,7 +28,8 @@ export const handleNewMessage = async (
   startInactivityTimer(ws);
   const currentSession = sessionManager.get();
   const aiClient = getOpenAiClient();
-  const prevMessages = await storage.getMessages(currentSession);
+  const prevMessages = (await storage.getMessages(currentSession)) ?? [];
+  
   try {
     const messageData: WSMessage = JSON.parse(message.toString());
     if (!messageData.content) {
@@ -182,6 +187,9 @@ export const handleNewMessage = async (
               functionArgs.days,
               functionArgs.maxResults,
             );
+          } else if (functionName === 'web_search') {
+            console.log("Web searched triggered\n");
+            content = await performWebSearch(functionArgs.query);
           }
 
           return {

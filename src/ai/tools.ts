@@ -158,4 +158,21 @@ export const tools: ChatCompletionTool[] = [
       strict: true,
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'web_search',
+      description: 'Perform a live web search for the user query.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'What the user wants to search.',
+          },
+        },
+        required: ['query'],
+      },
+    },
+  },
 ];
