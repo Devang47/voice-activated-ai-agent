@@ -1,5 +1,5 @@
 import type { WebSocket } from "ws"
-import type { WSMessage } from "../types/index.ts"
+import type { RedisMessage, WSMessage } from "../types/index.ts"
 import storage from "../storage.ts"
 import { getOpenAiClient, sessionManager, startInactivityTimer } from "./helpers.ts"
 import { tools } from "./tools.ts"
@@ -7,6 +7,8 @@ import { instructions } from "./constants.ts"
 import { logger } from "../utils/logger.ts"
 import { getWeatherData, sendEmail } from "../ai/ToolFunctions/index.ts"
 import { cancelMeeting, getUpcomingMeetings, scheduleMeeting } from "./ToolFunctions/scheduleMeeting.ts"
+import { ChatCompletionToolMessageParam } from 'groq-sdk/src/resources/chat.js';
+
 
 export const handleNewMessage = async (message: WebSocket.RawData, ws: WebSocket) => {
   startInactivityTimer(ws)
@@ -66,7 +68,7 @@ export const handleNewMessage = async (message: WebSocket.RawData, ws: WebSocket
           role: "system",
           content: instructions,
         },
-        ...(prevMessages ?? []),
+        ...prevMessages,
         {
           role: "user",
           content: messageData.content,
@@ -101,9 +103,24 @@ export const handleNewMessage = async (message: WebSocket.RawData, ws: WebSocket
           sessionActive: true,
         }),
       )
+      
+
+// extend type ChatCompletionToolMessageParam to include name and create a new type
+type ToolCallParam = ChatCompletionToolMessageParam & {
+  name: string;
+};
+
+ws.send(
+  JSON.stringify({
+    role: "assistant",
+    content: assistantMessage.content || "I'm working on that for you now...",
+    sessionActive: true,
+  }),
+)
+
 
       // Process each tool call
-      const toolResults = await Promise.all(
+      const toolResults: ToolCallParam[] = await Promise.all(
         toolCalls.map(async (toolCall) => {
           if (toolCall.type !== "function") return null
 
@@ -134,10 +151,9 @@ export const handleNewMessage = async (message: WebSocket.RawData, ws: WebSocket
             content = await getUpcomingMeetings(functionArgs.days, functionArgs.maxResults)
           }
 
-          // Return in the correct format for OpenAI
           return {
             tool_call_id: toolCall.id,
-            role: "tool" as const,
+            role: "tool",
             name: functionName,
             content: content,
           }
@@ -157,7 +173,7 @@ export const handleNewMessage = async (message: WebSocket.RawData, ws: WebSocket
               instructions +
               "\n\nIMPORTANT: The user has already been informed that you're processing their request. Now provide a friendly, natural response about what you've done. DO NOT include technical details or JSON in your response. Speak as if you've already completed the task.",
           },
-          ...(prevMessages ?? []),
+          ...prevMessages,
           {
             role: "user",
             content: messageData.content,
@@ -169,13 +185,35 @@ export const handleNewMessage = async (message: WebSocket.RawData, ws: WebSocket
         max_completion_tokens: 1024,
       })
 
-      // Store the AI's final response
-      await storage.addMessage(currentSession, [
+      // Store the tool results and the AI's final response
+      // Convert to appropriate storage format
+      // Type assertion to ensure all elements conform to RedisMessage
+      const storageMessages: RedisMessage[] = [
         {
-          role: "assistant",
-          content: toolResponseMessage.choices[0].message.content || "",
+          role: 'user',
+          content: messageData.content,
         },
-      ])
+        // Convert assistantMessage to RedisMessage
+        {
+          role: 'assistant',
+          content:
+            assistantMessage.content ||
+            (assistantMessage.tool_calls
+              ? `Tool calls: ${JSON.stringify(assistantMessage.tool_calls)}`
+              : ''),
+        },
+        // Convert tool responses to RedisMessage format
+        ...validToolResults.map((result) => ({
+          role: 'assistant' as const,
+          content: `Tool response for ${result.name}: ${result.content}`,
+        })),
+        {
+          role: 'assistant',
+          content: toolResponseMessage.choices[0].message.content || '',
+        },
+      ]
+
+    await storage.addMessage(currentSession, storageMessages)
 
       // Send the final response to the client
       ws.send(

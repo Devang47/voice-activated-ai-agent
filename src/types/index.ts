@@ -1,5 +1,5 @@
 export type RedisMessage = {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: string;
 };
 
@@ -30,4 +30,4 @@ export type EmailResponse = {
     timestamp: string;
   };
   error?: string;
-}
+};
