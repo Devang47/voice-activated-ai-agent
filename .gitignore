@@ -41,7 +41,6 @@ build/Release
 # Dependency directories
 node_modules/
 jspm_packages/
-
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 
@@ -142,3 +141,4 @@ Thumbs.db
 dump.rdb
 
 pnpm-lock.yaml
+package-lock.json
