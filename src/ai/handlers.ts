@@ -10,15 +10,18 @@ import { tools } from './tools.ts';
 import { instructions } from './constants.ts';
 import { logger } from '../utils/logger.ts';
 import { getWeatherData, sendEmail } from './functions.ts';
+import { ChatCompletionToolMessageParam } from 'groq-sdk/src/resources/chat.js';
 
 export const handleNewMessage = async (
   message: WebSocket.RawData,
   ws: WebSocket,
 ) => {
   startInactivityTimer(ws);
+
   const currentSession = sessionManager.get();
   const aiClient = getOpenAiClient();
-  const prevMessages = await storage.getMessages(currentSession);
+  const prevMessages = (await storage.getMessages(currentSession)) ?? [];
+
   try {
     const messageData: WSMessage = JSON.parse(message.toString());
     if (!messageData.content) {
@@ -26,6 +29,7 @@ export const handleNewMessage = async (
       ws.send('Error: Message content cannot be empty');
       return;
     }
+
     const response = await aiClient.chat.completions.create({
       model: 'llama-3.1-8b-instant',
       tools,
@@ -34,7 +38,7 @@ export const handleNewMessage = async (
           role: 'system',
           content: instructions,
         },
-        ...(prevMessages ?? []),
+        ...prevMessages,
         {
           role: 'user',
           content: messageData.content,
@@ -45,21 +49,16 @@ export const handleNewMessage = async (
     });
 
     if (response.choices[0].finish_reason === 'tool_calls') {
-      // Handle tool calls
       const toolCalls = response.choices[0].message.tool_calls || [];
       const assistantMessage = response.choices[0].message;
 
-      // Store user message and assistant's tool call request
-      await storage.addMessage(currentSession, [
-        {
-          role: 'user',
-          content: messageData.content,
-        },
-        assistantMessage,
-      ]);
+      // extend type ChatCompletionToolMessageParam to include name and create a new type
+      type ToolCallParam = ChatCompletionToolMessageParam & {
+        name: string;
+      };
 
       // Process each tool call
-      const toolResults = await Promise.all(
+      const toolResults: ToolCallParam[] = await Promise.all(
         toolCalls.map(async (toolCall) => {
           if (toolCall.type !== 'function') return null;
 
@@ -81,10 +80,9 @@ export const handleNewMessage = async (
             );
           }
 
-          // Return in the correct format for OpenAI
           return {
             tool_call_id: toolCall.id,
-            role: 'tool' as const, // Using 'as const' to ensure TypeScript knows this is specifically "tool"
+            role: 'tool',
             name: functionName,
             content: content,
           };
@@ -102,13 +100,13 @@ export const handleNewMessage = async (
             role: 'system',
             content: instructions,
           },
-          ...(prevMessages ?? []),
+          ...prevMessages,
           {
             role: 'user',
             content: messageData.content,
           },
           assistantMessage,
-          ...validToolResults, // Type assertion to handle the tool messages
+          ...validToolResults,
         ],
         temperature: 1,
         max_completion_tokens: 1024,
@@ -119,12 +117,12 @@ export const handleNewMessage = async (
       // Type assertion to ensure all elements conform to RedisMessage
       const storageMessages: RedisMessage[] = [
         {
-          role: 'user' as const,
+          role: 'user',
           content: messageData.content,
         },
         // Convert assistantMessage to RedisMessage
         {
-          role: 'assistant' as const,
+          role: 'assistant',
           content:
             assistantMessage.content ||
             (assistantMessage.tool_calls
@@ -136,19 +134,16 @@ export const handleNewMessage = async (
           role: 'assistant' as const,
           content: `Tool response for ${result.name}: ${result.content}`,
         })),
-        // Convert final AI response to RedisMessage
         {
-          role: 'assistant' as const,
+          role: 'assistant',
           content: toolResponseMessage.choices[0].message.content || '',
         },
       ];
 
       await storage.addMessage(currentSession, storageMessages);
 
-      // Send the final response to the client
       ws.send(JSON.stringify(toolResponseMessage.choices[0].message));
     } else {
-      // Regular response handling (no tool calls)
       // Regular response handling (no tool calls)
       await storage.addMessage(currentSession, [
         {

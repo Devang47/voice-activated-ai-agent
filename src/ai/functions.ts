@@ -12,8 +12,7 @@ export async function getWeatherData(
   unit: string = 'celsius',
 ): Promise<string> {
   try {
-    // OpenWeatherMap API endpoint
-    const apiKey = process.env.OPENWEATHER_API_KEY; // Add this to your .env file
+    const apiKey = process.env.OPENWEATHER_API_KEY;
     if (!apiKey) {
       throw new Error('OpenWeather API key is missing');
     }
@@ -21,19 +20,18 @@ export async function getWeatherData(
     const unitSystem = unit === 'fahrenheit' ? 'imperial' : 'metric';
     const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(location)}&units=${unitSystem}&appid=${apiKey}`;
 
-    const response = await axios.get(url);
-    const data = response.data;
+    const responseData = (await axios.get(url)).data;
 
     // Format the response to match your existing structure
     const weatherData: WeatherResponse = {
-      location: data.name + ', ' + (data.sys?.country || ''),
+      location: responseData.name + ', ' + (responseData.sys?.country || ''),
       temperature: {
-        value: Math.round(data.main.temp),
+        value: Math.round(responseData.main.temp),
         unit: unit === 'fahrenheit' ? '°F' : '°C',
       },
-      conditions: data.weather[0]?.main || 'Unknown',
-      humidity: `${data.main.humidity}%`,
-      wind: `${Math.round(data.wind.speed)} ${unitSystem === 'imperial' ? 'mph' : 'm/s'}`,
+      conditions: responseData.weather[0]?.main || 'Unknown',
+      humidity: `${responseData.main.humidity}%`,
+      wind: `${Math.round(responseData.wind.speed)} ${unitSystem === 'imperial' ? 'mph' : 'm/s'}`,
       last_updated: new Date().toISOString(),
     };
 
