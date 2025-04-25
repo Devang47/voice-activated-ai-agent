@@ -31,6 +31,7 @@ export type EmailResponse = {
   };
   error?: string;
 };
+
 export interface WebSearchResponse {
   success: boolean;
   results?: string;
@@ -40,3 +41,11 @@ export interface WebSearchResponse {
     timestamp: string;
   };
 }
+
+export type TODO = {
+  id: string;
+  title: string;
+  description: string;
+  completed: boolean;
+  createdAt: Date;
+};

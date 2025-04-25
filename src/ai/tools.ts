@@ -175,4 +175,92 @@ export const tools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'get_todos',
+      description: 'Retrieve all todos and tasks saved by the user',
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'mark_todo_as_complete',
+      description: 'Mark a todo as complete using the todo id',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            description: 'ID of the todo to mark as complete',
+          },
+        },
+        required: ['id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'delete_todo',
+      description: 'Delete a todo using the todo id',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            description: 'ID of the todo to delete',
+          },
+        },
+        required: ['id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_todo',
+      description:
+        'Create and save a new todo of the user using title & description, description is not mandatory',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: {
+            type: 'string',
+            description: 'Title of the todo',
+          },
+          description: {
+            type: 'string',
+            description: 'Description for the todo',
+          },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'update_todo',
+      description: 'Update a todo title & description using the todo id',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            description: 'ID of the todo to update',
+          },
+          title: {
+            type: 'string',
+            description: 'Title of the todo',
+          },
+          description: {
+            type: 'string',
+            description: 'Description for the todo',
+          },
+        },
+        required: ['query'],
+      },
+    },
+  },
 ];

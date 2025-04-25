@@ -13,6 +13,11 @@ import {
   getWeatherData,
   sendEmail,
   performWebSearch,
+  createTodo,
+  markTodoAsComplete,
+  getTodos,
+  deleteTodo,
+  updateTodo,
 } from '../functions/index.ts';
 import {
   cancelMeeting,
@@ -104,7 +109,6 @@ export const handleNewMessage = async (
     });
 
     if (response.choices[0].finish_reason === 'tool_calls') {
-      // Handle tool calls
       const toolCalls = response.choices[0].message.tool_calls || [];
       const assistantMessage = response.choices[0].message;
 
@@ -188,6 +192,23 @@ export const handleNewMessage = async (
           } else if (functionName === 'web_search') {
             console.log('Web searched triggered\n');
             content = await performWebSearch(functionArgs.query);
+          } else if (functionName === 'mark_todo_as_complete') {
+            content = await markTodoAsComplete(functionArgs.id);
+          } else if (functionName === 'create_todo') {
+            content = await createTodo(
+              functionArgs.title,
+              functionArgs.description,
+            );
+          } else if (functionName === 'get_todos') {
+            content = JSON.stringify(await getTodos());
+          } else if (functionName === 'delete_todo') {
+            content = await deleteTodo(functionArgs.id);
+          } else if (functionName === 'update_todo') {
+            content = await updateTodo(
+              functionArgs.id,
+              functionArgs.title,
+              functionArgs.description,
+            );
           }
 
           return {
