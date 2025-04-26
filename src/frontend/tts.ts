@@ -26,7 +26,7 @@ export async function playAudio(text: string): Promise<void> {
     const [response] = await client.synthesizeSpeech(request);
 
     // Create a temporary file path
-    const tempFilePath = path.join(os.tmpdir(), `tts-${Date.now()}.mp3`);
+    const tempFilePath = path.join(`tts-${Date.now()}.mp3`);
 
     // Write to temp file
     await fs.promises.writeFile(
@@ -53,7 +53,7 @@ export async function playAudio(text: string): Promise<void> {
     }
 
     // Delete temp file after playing
-    await fs.promises.unlink(tempFilePath);
+    // await fs.promises.unlink(tempFilePath);
     logger.info('Audio playback completed and temp file deleted');
   } catch (error) {
     logger.error('Error in audio playback:', error);
