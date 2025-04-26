@@ -49,3 +49,50 @@ export type TODO = {
   completed: boolean;
   createdAt: Date;
 };
+
+export type Reminder = {
+  id: string;
+  title: string;
+  description: string;
+  dueDate: Date;
+  priority: 'low' | 'medium' | 'high';
+  completed: boolean;
+  createdAt: Date;
+  completedAt?: Date;
+};
+
+export type NewsArticle = {
+  title: string;
+  source: string;
+  url: string;
+  publishedAt: string;
+  description: string;
+};
+
+export type NewsResponse = {
+  success: boolean;
+  topic: string;
+  articles?: NewsArticle[];
+  count?: number;
+  error?: string;
+};
+
+export type WeatherForecastResponse = {
+  success: boolean;
+  location: string;
+  forecast?: Array<{
+    date: string;
+    temperature: {
+      min: number;
+      max: number;
+      unit: string;
+    };
+    conditions: string;
+    description: string;
+    humidity: string;
+    wind: string;
+    precipitation: string;
+  }>;
+  days?: number;
+  error?: string;
+};

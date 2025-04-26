@@ -47,6 +47,7 @@ export const markTodoAsComplete = async (id: string) => {
 };
 
 export const getTodos = async () => {
+  console.log('Todo Called');
   const todosCollection = collection(db, 'todos');
   const todosSnapshot = await getDocs(todosCollection);
 
@@ -56,6 +57,7 @@ export const getTodos = async () => {
     };
   });
 
+  console.log('todos : ' + todosList);
   return todosList;
 };
 

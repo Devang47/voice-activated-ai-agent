@@ -17,15 +17,6 @@ oauth2Client.setCredentials({
   refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
 });
 
-// Create nodemailer transporter
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL,
-    pass: process.env.PASSWORD,
-  },
-});
-
 // Create calendar client
 const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
@@ -42,7 +33,7 @@ function formatDateTimeForGoogle(dateStr: string, timeStr: string): string {
   return date.toISOString();
 }
 
-// Fix the email sending function for meeting notifications
+// Improved email sending function for meeting notifications with better error handling
 async function sendMeetingEmail(
   clientEmail: string,
   clientName: string,
@@ -54,13 +45,22 @@ async function sendMeetingEmail(
     location: string;
     isVideoConference: boolean;
   },
-): Promise<void> {
+): Promise<boolean> {
   try {
     // Make sure we have valid email credentials
     if (!process.env.EMAIL || !process.env.PASSWORD) {
       logger.error('Missing email credentials in environment variables');
       throw new Error('Email credentials not configured');
     }
+
+    // Create transporter for this specific email
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL,
+        pass: process.env.PASSWORD,
+      },
+    });
 
     const mailOptions = {
       from: process.env.EMAIL,
@@ -83,16 +83,35 @@ async function sendMeetingEmail(
           <p>Best Regards,<br>Robin Rathore</p>
         </div>
       `,
+      text: `Hello ${clientName},\n\nYour meeting has been scheduled.\n\nDetails:\nSubject: ${meetingDetails.subject}\nDate: ${meetingDetails.date}\nTime: ${meetingDetails.time}\nLocation: ${meetingDetails.location}\n\n${meetingDetails.isVideoConference ? `Join Link: ${meetingDetails.location}` : ''}\n\nLooking forward to our discussion!\n\nBest Regards,\nRobin Rathore`,
     };
 
     // Log the email being sent for debugging
-    logger.info(`Attempting to send meeting email to: ${clientEmail}`);
+    logger.info(`Sending meeting email to: ${clientEmail}`);
 
+    // Send the email
     const info = await transporter.sendMail(mailOptions);
     logger.info(`Meeting email sent successfully: ${info.messageId}`);
+    return true;
   } catch (error) {
     logger.error('Error sending meeting email:', error);
-    throw error; // Rethrow to handle in the calling function
+    return false; // Return false instead of throwing to handle in the calling function
+  }
+}
+
+// Determine meeting duration based on meeting type
+function getMeetingDurationMinutes(meetingType: string): number {
+  switch (meetingType?.toLowerCase()) {
+    case 'initial consultation':
+      return 60;
+    case 'proposal review':
+      return 45;
+    case 'status update':
+      return 30;
+    case 'technical discussion':
+      return 60;
+    default:
+      return 30; // Default to 30 minutes
   }
 }
 
@@ -107,44 +126,36 @@ export async function scheduleMeeting(
   notes = '',
   location = 'Google Meet',
   timeZone = 'America/Los_Angeles',
+  meetingType = '', // Added meeting type parameter
 ): Promise<string> {
   try {
     // Validate inputs
     if (!clientName || !clientEmail || !date || !startTime) {
-      return JSON.stringify({
-        success: false,
-        error: 'Missing required meeting information',
-      });
+      return "I need more information to schedule this meeting. Could you provide the client's name, email, date, and start time?";
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(clientEmail)) {
-      return JSON.stringify({
-        success: false,
-        error: 'Invalid email format',
-      });
+      return "The email address doesn't look right. Could you double-check it?";
     }
 
     // Validate date format (YYYY-MM-DD)
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(date)) {
-      return JSON.stringify({
-        success: false,
-        error: 'Invalid date format. Please use YYYY-MM-DD',
-      });
+      return 'Please provide the date in YYYY-MM-DD format, like 2025-05-15.';
     }
 
     // Validate time format (HH:MM)
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
     if (!timeRegex.test(startTime)) {
-      return JSON.stringify({
-        success: false,
-        error: 'Invalid time format. Please use HH:MM (24-hour format)',
-      });
+      return 'Please provide the time in 24-hour format, like 14:30 for 2:30 PM.';
     }
 
-    const meetingDuration = duration;
+    // Use appropriate meeting duration if meeting type is provided
+    const meetingDuration = meetingType
+      ? getMeetingDurationMinutes(meetingType)
+      : duration;
     const startDateTime = formatDateTimeForGoogle(date, startTime);
 
     // Calculate end time by adding duration
@@ -157,10 +168,14 @@ export async function scheduleMeeting(
       location.toLowerCase().includes('google meet') ||
       location.toLowerCase().includes('zoom');
 
-    const meetingSubject = `Meeting with ${clientName}${projectName ? ` - ${projectName}` : ''}`;
+    const meetingSubject = meetingType
+      ? `${meetingType}: ${clientName}${projectName ? ` - ${projectName}` : ''}`
+      : `Meeting with ${clientName}${projectName ? ` - ${projectName}` : ''}`;
+
     const meetingDescription = `
 Meeting with ${clientName}
 Email: ${clientEmail}
+${meetingType ? `Type: ${meetingType}` : ''}
 ${projectName ? `Project: ${projectName}` : ''}
 ${notes ? `\nNotes: ${notes}` : ''}
 
@@ -218,45 +233,51 @@ Automatically scheduled by LISA.
     const createdEvent = response.data;
     const hangoutLink = createdEvent.hangoutLink || '';
 
+    const formattedDate = new Date(date).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+    const formattedStartTime = new Date(
+      `${date}T${startTime}`,
+    ).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+
+    const formattedEndTime = new Date(endDateTime).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+
     const meetingDetails = {
-      subject: event.summary,
+      subject: event.summary || '',
       with: clientName,
-      date,
-      time: `${startTime} - ${new Date(endDateTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`,
+      date: formattedDate,
+      time: `${formattedStartTime} - ${formattedEndTime}`,
       location: useVideoConference && hangoutLink ? hangoutLink : location,
       isVideoConference: useVideoConference,
     };
 
-    // Try to send the email, but don't fail if it doesn't work
-    try {
-      await sendMeetingEmail(clientEmail, clientName, meetingDetails);
-      logger.info('Meeting email sent successfully');
-    } catch (emailError) {
-      logger.error(
-        'Failed to send meeting email, but meeting was created:',
-        emailError,
-      );
-    }
+    // Always send the email notification
+    const emailSent = await sendMeetingEmail(
+      clientEmail,
+      clientName,
+      meetingDetails,
+    );
 
-    return JSON.stringify({
-      success: true,
-      meetingId: createdEvent.id,
-      meetingLink: createdEvent.htmlLink,
-      meetingDetails: {
-        subject: meetingSubject,
-        with: clientName,
-        date: date,
-        time: `${startTime} - ${new Date(endDateTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`,
-        location: useVideoConference && hangoutLink ? hangoutLink : location,
-        isVideoConference: useVideoConference,
-      },
-    });
+    if (emailSent) {
+      return `I've scheduled the meeting with ${clientName} for ${formattedDate} at ${formattedStartTime}. I've sent a calendar invitation and email confirmation to ${clientEmail}. ${useVideoConference ? 'A Google Meet link has been included in the invitation.' : ''}`;
+    } else {
+      return `I've scheduled the meeting with ${clientName} for ${formattedDate} at ${formattedStartTime}, but there was an issue sending the email confirmation. The calendar invitation has still been sent to ${clientEmail}. ${useVideoConference ? 'A Google Meet link has been included in the invitation.' : ''}`;
+    }
   } catch (error) {
     logger.error('Error scheduling meeting:', error);
-    return JSON.stringify({
-      success: false,
-      error: `Error scheduling meeting: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    });
+    return `I had trouble scheduling that meeting. ${error instanceof Error ? error.message : 'Please try again with complete details.'}`;
   }
 }
 
@@ -275,6 +296,29 @@ export async function cancelMeeting(
 
     const event = existingEventResponse.data;
 
+    // Format the date and time for natural language response
+    const startDate = event.start?.dateTime
+      ? new Date(event.start.dateTime)
+      : null;
+    const formattedDate = startDate
+      ? startDate.toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : 'the scheduled date';
+
+    const formattedTime = startDate
+      ? startDate.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        })
+      : 'the scheduled time';
+
+    const meetingTitle = event.summary || 'meeting';
+
     // Delete/cancel the event
     await calendar.events.delete({
       calendarId: 'primary',
@@ -282,27 +326,10 @@ export async function cancelMeeting(
       sendUpdates: sendNotification ? 'all' : 'none',
     });
 
-    return JSON.stringify({
-      success: true,
-      canceled: true,
-      meetingDetails: {
-        subject: event.summary,
-        date: event.start?.dateTime
-          ? new Date(event.start.dateTime).toLocaleDateString()
-          : '',
-        time:
-          event.start?.dateTime && event.end?.dateTime
-            ? `${new Date(event.start.dateTime).toLocaleTimeString()} - ${new Date(event.end.dateTime).toLocaleTimeString()}`
-            : '',
-        reason: reason,
-      },
-    });
+    return `I've canceled the ${meetingTitle} that was scheduled for ${formattedDate} at ${formattedTime}. ${sendNotification ? 'All attendees have been notified of the cancellation.' : 'No notifications were sent to attendees.'}`;
   } catch (error) {
     logger.error('Error canceling meeting:', error);
-    return JSON.stringify({
-      success: false,
-      error: `Error canceling meeting: ${error instanceof Error ? error.message : 'Unknown error'}`,
-    });
+    return `I couldn't cancel that meeting. ${error instanceof Error ? error.message : 'Please check the meeting ID and try again.'}`;
   }
 }
 
@@ -316,7 +343,11 @@ export async function getUpcomingMeetings(
     const future = new Date();
     future.setDate(future.getDate() + days);
 
-    const response = await calendar.events.list({
+    logger.info(
+      `Fetching meetings from ${now.toISOString()} to ${future.toISOString()}`,
+    );
+
+    const listResponse = await calendar.events.list({
       calendarId: 'primary',
       timeMin: now.toISOString(),
       timeMax: future.toISOString(),
@@ -325,7 +356,12 @@ export async function getUpcomingMeetings(
       orderBy: 'startTime',
     });
 
-    const events = response.data.items || [];
+    const events = listResponse.data.items || [];
+    const eventCount = events.length;
+
+    if (eventCount === 0) {
+      return `You don't have any meetings scheduled in the next ${days} days.`;
+    }
 
     const formattedEvents = events.map((event) => {
       const start = event.start?.dateTime
@@ -334,51 +370,137 @@ export async function getUpcomingMeetings(
           ? new Date(event.start.date)
           : new Date();
 
-      const end = event.end?.dateTime
-        ? new Date(event.end.dateTime)
-        : event.end?.date
-          ? new Date(event.end.date)
-          : new Date();
-
       return {
-        id: event.id || '',
         title: event.summary || 'Untitled Meeting',
-        date: start.toLocaleDateString(),
-        startTime: start.toLocaleTimeString('en-US', {
-          hour: '2-digit',
+        date: start.toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+        }),
+        time: start.toLocaleTimeString('en-US', {
+          hour: 'numeric',
           minute: '2-digit',
           hour12: true,
         }),
-        endTime: end.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true,
-        }),
-        location:
-          event.location ||
-          (event.hangoutLink ? 'Google Meet' : 'Not specified'),
-        videoLink: event.hangoutLink || null,
-        attendees: event.attendees
-          ? event.attendees.map((a) => ({
-              email: a.email || '',
-              name: a.displayName || a.email || '',
-            }))
-          : [],
-        description: event.description || '',
+        with:
+          event.attendees
+            ?.filter((a) => a.email !== process.env.EMAIL)
+            .map((a) => a.displayName || a.email) || [],
       };
     });
 
-    return JSON.stringify({
-      success: true,
-      meetings: formattedEvents,
-      timeZone: response.data.timeZone || 'Unknown',
-      count: formattedEvents.length,
+    // Create a natural language response
+    let response = `You have ${eventCount} meeting${eventCount > 1 ? 's' : ''} in the next ${days} days:`;
+
+    formattedEvents.forEach((event, index) => {
+      const attendees =
+        event.with.length > 0 ? ` with ${event.with.join(', ')}` : '';
+      response += `\n${index + 1}. ${event.title} on ${event.date} at ${event.time}${attendees}`;
     });
+
+    return response;
   } catch (error) {
     logger.error('Error retrieving upcoming meetings:', error);
-    return JSON.stringify({
-      success: false,
-      error: `Error retrieving upcoming meetings: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    return `I couldn't retrieve your upcoming meetings. ${error instanceof Error ? error.message : 'Please try again later.'}`;
+  }
+}
+
+// Reschedule a meeting
+export async function rescheduleMeeting(
+  meetingId: string,
+  newDate: string,
+  newStartTime: string,
+  reason = 'Schedule change requested',
+  timeZone = 'America/Los_Angeles',
+): Promise<string> {
+  try {
+    // First get the existing event
+    const existingEvent = await calendar.events.get({
+      calendarId: 'primary',
+      eventId: meetingId,
     });
+
+    const event = existingEvent.data;
+
+    // Determine meeting duration from existing event
+    const existingStart = new Date(event.start?.dateTime || '');
+    const existingEnd = new Date(event.end?.dateTime || '');
+    const durationMinutes = Math.round(
+      (existingEnd.getTime() - existingStart.getTime()) / 60000,
+    );
+
+    // Format the original time for natural language response
+    const originalFormattedDate = existingStart.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+    const originalFormattedTime = existingStart.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+
+    // Update start and end times
+    const startDateTime = formatDateTimeForGoogle(newDate, newStartTime);
+    const endDateTime = new Date(
+      new Date(startDateTime).getTime() + durationMinutes * 60000,
+    ).toISOString();
+
+    // Format the new time for natural language response
+    const newFormattedDate = new Date(newDate).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+    const newFormattedTime = new Date(
+      `${newDate}T${newStartTime}`,
+    ).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+
+    // Update event description to include rescheduling information
+    const updatedDescription = `${event.description || ''}\n\nRescheduled: ${reason}\nPrevious time: ${existingStart.toLocaleString()}`;
+
+    // Update the event
+    const updatedEvent = {
+      ...event,
+      start: {
+        dateTime: startDateTime,
+        timeZone: timeZone,
+      },
+      end: {
+        dateTime: endDateTime,
+        timeZone: timeZone,
+      },
+      description: updatedDescription,
+    };
+
+    await calendar.events.update({
+      calendarId: 'primary',
+      eventId: meetingId,
+      requestBody: updatedEvent,
+      sendUpdates: 'all', // Send email notifications to attendees
+    });
+
+    const meetingTitle = event.summary || 'meeting';
+    const attendees =
+      event.attendees?.filter((a) => a.email !== process.env.EMAIL) || [];
+    const attendeeNames = attendees
+      .map((a) => a.displayName || a.email)
+      .join(', ');
+    const attendeeMessage =
+      attendees.length > 0 ? ` with ${attendeeNames}` : '';
+
+    return `I've rescheduled the ${meetingTitle}${attendeeMessage} from ${originalFormattedDate} at ${originalFormattedTime} to ${newFormattedDate} at ${newFormattedTime}. All attendees have been notified of this change.`;
+  } catch (error) {
+    logger.error('Error rescheduling meeting:', error);
+    return `I couldn't reschedule that meeting. ${error instanceof Error ? error.message : 'Please check the meeting ID and try again with valid date and time.'}`;
   }
 }
