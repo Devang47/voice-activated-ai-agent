@@ -13,6 +13,7 @@ import {
   getWeatherData,
   sendEmail,
   performWebSearch,
+  sendMailToAll,
   createTodo,
   markTodoAsComplete,
   getTodos,
@@ -365,6 +366,12 @@ export const handleNewMessage = async (
             content = await deleteReminder(functionArgs.id);
           } else if (functionName === 'get_reminders') {
             content = await getReminders(functionArgs.id);
+          } else if (functionName === 'send_mail_to_users') {
+            // console.log('Send to all mail function triggered');
+            content = await sendMailToAll(
+              functionArgs.subject,
+              functionArgs.body,
+            );
           }
 
           return {
