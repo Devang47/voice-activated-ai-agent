@@ -2,7 +2,8 @@ import dotenv from 'dotenv';
 
 import { logger } from '../utils/logger.ts';
 import { connectToWebSocketServer, handleServerMessage } from './ws.ts';
-import { startRecording, stopRecording } from './stt.ts';
+import { stopRecording } from './stt.ts';
+import { playAudio } from './tts.ts';
 
 dotenv.config();
 
@@ -19,7 +20,9 @@ export const wsConnection = connectToWebSocketServer(
     onMessage: handleServerMessage,
     reconnectAttempts: 3,
     reconnectInterval: 2000,
-    onOpen: () => startRecording(wsConnection),
+    // onOpen: () => startRecording(wsConnection),
     onClose: () => stopRecording(),
   },
 );
+
+playAudio('PI is working fine and you can start using it now');
