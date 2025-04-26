@@ -1,6 +1,7 @@
 import { WSMessage } from '../types/index.ts';
 import { logger } from '../utils/logger.ts';
 import WebSocket from 'ws';
+import { playAudio } from './tts.ts';
 
 export const connectToWebSocketServer = (
   url: string,
@@ -59,6 +60,9 @@ export const handleServerMessage = (msg: WebSocket.RawData) => {
   try {
     const dataString = msg.toString();
     serverMessage = JSON.parse(dataString) as WSMessage;
+    if (serverMessage.role === 'assistant') {
+      playAudio(serverMessage.content);
+    }
   } catch (error) {
     logger.error('Failed to parse server message:', error);
     return;
