@@ -139,7 +139,7 @@ DO NOT RESPOND WITHOUT USING THE APPROPRIATE TOOL FOR THIS REQUEST.
 }
 
 export const handleNewMessage = async (
-  message: WebSocket.RawData,
+  message: WebSocket.RawData | string,
   ws: WebSocket,
 ) => {
   startInactivityTimer(ws);
