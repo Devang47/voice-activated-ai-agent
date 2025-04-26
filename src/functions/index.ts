@@ -1,5 +1,7 @@
 export * from './getWeather.ts';
 export * from './sendEmail.ts';
-export * from './getUpcomingMeetings.ts';
+export * from './scheduleMeeting.ts'; // Consolidated calendar functions
 export * from './webSearch.ts';
 export * from './sendMailToAll.ts';
+export * from './todos.ts';
+export * from './newsAndReminders.ts';
