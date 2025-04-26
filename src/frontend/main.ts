@@ -14,15 +14,15 @@ if (!process.env.WS_SERVER_URL) {
   throw new Error('WebSocket server URL is not defined');
 }
 
-export const wsConnection = connectToWebSocketServer(
-  process.env.WS_SERVER_URL,
-  {
-    onMessage: handleServerMessage,
-    reconnectAttempts: 3,
-    reconnectInterval: 2000,
-    // onOpen: () => startRecording(wsConnection),
-    onClose: () => stopRecording(),
-  },
-);
+// export const wsConnection = connectToWebSocketServer(
+//   process.env.WS_SERVER_URL,
+//   {
+//     onMessage: handleServerMessage,
+//     reconnectAttempts: 3,
+//     reconnectInterval: 2000,
+//     // onOpen: () => startRecording(wsConnection),
+//     onClose: () => stopRecording(),
+//   },
+// );
 
 playAudio('PI is working fine and you can start using it now');
