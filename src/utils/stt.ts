@@ -66,7 +66,7 @@ export const startRecording = (
         const transcript = data.results[0].alternatives[0].transcript;
         console.log(`Transcription: ${transcript}`);
 
-        if (!inputStarted && transcript.trim().toLowerCase().contains('lisa')) {
+        if (!inputStarted && transcript.toLowerCase().includes('lisa')) {
           logger.info('Keyword detected, starting recording...');
           inputStarted = true;
           finalTranscript = '';

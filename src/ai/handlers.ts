@@ -220,7 +220,7 @@ export const handleNewMessage = async (
           role: 'system',
           content: enhancedInstructions,
         },
-        ...prevMessages,
+        ...prevMessages.slice(1).slice(-5),
         {
           role: 'user',
           content: messageData.content,
@@ -396,7 +396,7 @@ export const handleNewMessage = async (
               instructions +
               "\n\nIMPORTANT: The user has already been informed that you're processing their request. Now provide a friendly, natural response about what you've done. DO NOT include technical details or JSON in your response. Speak as if you've already completed the task.",
           },
-          ...prevMessages,
+          ...prevMessages.slice(1).slice(-5),
           {
             role: 'user',
             content: messageData.content,
@@ -484,7 +484,7 @@ This is a direct command to use tools for this request.
               role: 'system',
               content: forcedToolInstructions,
             },
-            ...prevMessages,
+            ...prevMessages.slice(1).slice(-5),
             {
               role: 'user',
               content: messageData.content,
