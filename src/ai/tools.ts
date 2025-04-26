@@ -175,4 +175,28 @@ export const tools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'send_mail_to_users',
+      description:
+        'read all email addresses from a txt or csv file and send an email to every email that is listed in the file.',
+      parameters: {
+        type: 'object',
+        properties: {
+          subject: {
+            type: 'string',
+            description: 'The subject line of the email.',
+          },
+          body: {
+            type: 'string',
+            description: 'The main content of the email.',
+          },
+        },
+        required: ['subject', 'body'],
+        additionalProperties: false,
+      },
+      strict: true,
+    },
+  },
 ];

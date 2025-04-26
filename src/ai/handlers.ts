@@ -13,6 +13,7 @@ import {
   getWeatherData,
   sendEmail,
   performWebSearch,
+  sendMailToAll,
 } from '../functions/index.ts';
 import {
   cancelMeeting,
@@ -29,7 +30,7 @@ export const handleNewMessage = async (
   const currentSession = sessionManager.get();
   const aiClient = getOpenAiClient();
   const prevMessages = (await storage.getMessages(currentSession)) ?? [];
-  
+
   try {
     const messageData: WSMessage = JSON.parse(message.toString());
     if (!messageData.content) {
@@ -188,8 +189,13 @@ export const handleNewMessage = async (
               functionArgs.maxResults,
             );
           } else if (functionName === 'web_search') {
-            console.log("Web searched triggered\n");
             content = await performWebSearch(functionArgs.query);
+          } else if (functionName === 'send_mail_to_users') {
+            // console.log('Send to all mail function triggered');
+            content = await sendMailToAll(
+              functionArgs.subject,
+              functionArgs.body,
+            );
           }
 
           return {
