@@ -4,6 +4,13 @@ export const tools: ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
+      name: 'give_introduction',
+      description: 'Give a brief introduction about yourself (lisa)',
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'get_weather',
       description: 'Get the current weather for a "location"',
       parameters: {

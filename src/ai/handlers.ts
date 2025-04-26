@@ -32,6 +32,7 @@ import {
   scheduleMeeting,
 } from '../functions/scheduleMeeting.ts';
 import { ChatCompletionToolMessageParam } from 'groq-sdk/src/resources/chat.js';
+import { giveIntro } from '../functions/giveIntro.ts';
 
 // Function to detect if a message likely requires tools
 function messageRequiresTool(message) {
@@ -372,6 +373,9 @@ export const handleNewMessage = async (
               functionArgs.subject,
               functionArgs.body,
             );
+          } else if (functionName === 'give_introduction') {
+            await giveIntro(ws);
+            return null;
           }
 
           return {
