@@ -27,7 +27,7 @@ import {
 import { ChatCompletionToolMessageParam } from 'groq-sdk/src/resources/chat.js';
 
 export const handleNewMessage = async (
-  message: WebSocket.RawData,
+  message: WebSocket.RawData | string,
   ws: WebSocket,
 ) => {
   startInactivityTimer(ws);

@@ -30,7 +30,7 @@
     "vitest": "^3.1.2"
   },
   "scripts": {
-    "dev": "nodemon --exec \"node --loader ts-node/esm\" src/ws.ts",
+    "dev": "nodemon --exec \"node --loader ts-node/esm\" src/main.ts",
     "frontend": "node --import 'data:text/javascript,import { register } from \"node:module\"; import { pathToFileURL } from \"node:url\"; register(\"ts-node/esm\", pathToFileURL(\"./\"));' src/frontend/main.ts",
     "start": "node build/src/main.js",
     "clean": "rimraf coverage build tmp",
