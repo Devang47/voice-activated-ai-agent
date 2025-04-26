@@ -1,62 +1,15 @@
+import WebSocket from 'ws';
 import recorder from 'node-record-lpcm16';
-import speech from '@google-cloud/speech';
 
-// Creates a client
-const client = new speech.SpeechClient();
-
-const encoding = 'LINEAR16';
 const sampleRateHertz = 16000;
-const languageCode = 'en-IN';
 
 let recordingInstance = null;
 let recognizeStream = null;
 
-const createRequest: any = {
-  config: {
-    encoding: encoding,
-    sampleRateHertz: sampleRateHertz,
-    languageCode: languageCode,
-    speechContexts: [
-      {
-        phrases: [
-          'lisa',
-          'devang',
-          'saklani',
-          'arpit',
-          'sushant',
-          'chamoli',
-          'devangsaklani@gamil.com',
-        ],
-        boost: 10.0,
-      },
-    ],
-  },
-  interimResults: false,
-};
-
-export const startRecording = () => {
+export const startRecording = (ws: WebSocket) => {
   stopRecording();
 
   console.log('Start speaking...');
-
-  recognizeStream = client
-    .streamingRecognize(createRequest)
-    .on('error', (error) => {
-      console.error('Recognition error:', error);
-      stopRecording();
-    })
-    .on('data', (data) => {
-      if (
-        data.results[0] &&
-        data.results[0].alternatives[0] &&
-        data.results[0].isFinal
-      ) {
-        console.log(
-          `Final Transcription: ${data.results[0].alternatives[0].transcript}`,
-        );
-      }
-    });
-
   recordingInstance = recorder
     .record({
       sampleRateHertz: sampleRateHertz,
@@ -71,7 +24,9 @@ export const startRecording = () => {
       console.error('Recording error:', error);
       stopRecording();
     })
-    .pipe(recognizeStream);
+    .on('data', function (data) {
+      ws.send(data, { binary: true });
+    });
 
   return recordingInstance;
 };
