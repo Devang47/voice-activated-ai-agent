@@ -47,9 +47,7 @@ export async function playAudio(text: string): Promise<void> {
       await execAsync(`start "${tempFilePath}"`);
     } else {
       // Linux and others
-      await execAsync(
-        `play "${tempFilePath}" || mpg123 "${tempFilePath}" || mpg321 "${tempFilePath}" || aplay "${tempFilePath}"`,
-      );
+      await execAsync(`cvlc "${tempFilePath}"`);
     }
 
     // Delete temp file after playing
