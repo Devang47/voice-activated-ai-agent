@@ -32,6 +32,7 @@
   },
   "scripts": {
     "dev": "nodemon --exec \"node --loader ts-node/esm\" src/main.ts",
+    "dev-test": "nodemon --exec \"node --loader ts-node/esm\" src/main-test.ts",
     "frontend": "node --import 'data:text/javascript,import { register } from \"node:module\"; import { pathToFileURL } from \"node:url\"; register(\"ts-node/esm\", pathToFileURL(\"./\"));' src/frontend/main.ts",
     "start": "node build/src/main.js",
     "clean": "rimraf coverage build tmp",
@@ -57,6 +58,7 @@
     "googleapis": "^148.0.0",
     "groq-sdk": "^0.19.0",
     "mic": "^2.1.2",
+    "node-fetch": "^3.3.2",
     "node-record-lpcm16": "^1.0.1",
     "nodemailer": "^6.10.1",
     "nodemon": "^3.1.9",
