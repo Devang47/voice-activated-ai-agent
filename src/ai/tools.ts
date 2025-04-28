@@ -11,6 +11,22 @@ export const tools: ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
+      name: 'compare_with_alexa',
+      description:
+        'Use this when user asks you to compare yourself with Alexa, why are you different from alexa',
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'mayday_call',
+      description:
+        'Sends a emergency message to the users family members or friends',
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'get_weather',
       description: 'Get the current weather for a "location"',
       parameters: {
@@ -96,25 +112,26 @@ export const tools: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'schedule_meeting',
-      description: 'Schedule a meeting on the calendar and send invitations',
+      description:
+        'Schedule a meeting with the user on the calendar and send invitations',
       parameters: {
         type: 'object',
         properties: {
-          clientName: {
+          name: {
             type: 'string',
             description: '"name" of the client or attendee',
           },
-          clientEmail: {
+          email: {
             type: 'string',
             description: 'Email address of the client for invitation',
           },
           date: {
             type: 'string',
-            description: 'Meeting date in YYYY-MM-DD format',
+            description: 'Meeting date',
           },
-          startTime: {
+          time: {
             type: 'string',
-            description: 'Meeting start time (HH:MM in 24-hour format)',
+            description: 'Meeting time',
           },
           duration: {
             type: 'number',
@@ -144,7 +161,7 @@ export const tools: ChatCompletionTool[] = [
             description: 'Time zone (default: America/Los_Angeles)',
           },
         },
-        required: ['client"name"', 'clientEmail', 'date', 'startTime'],
+        required: ['name', 'email'],
         additionalProperties: false,
       },
       strict: true,
@@ -234,50 +251,51 @@ export const tools: ChatCompletionTool[] = [
       strict: true,
     },
   },
-  {
-    type: 'function',
-    function: {
-      name: 'web_search',
-      description: 'Perform a live web search for the user query.',
-      parameters: {
-        type: 'object',
-        properties: {
-          query: {
-            type: 'string',
-            description: 'What the user wants to search.',
-          },
-        },
-        required: ['query'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'get_latest_news',
-      description: 'Get the latest news articles on a specific topic',
-      parameters: {
-        type: 'object',
-        properties: {
-          topic: {
-            type: 'string',
-            description:
-              "The topic to get news about (e.g., 'technology', 'sports', 'business')",
-          },
-          count: {
-            type: 'number',
-            description: 'Number of news articles to return (default: 5)',
-          },
-        },
-        required: ['topic'],
-      },
-    },
-  },
+  // {
+  //   type: 'function',
+  //   function: {
+  //     name: 'web_search',
+  //     description: 'Performs a web search for the user query.',
+  //     parameters: {
+  //       type: 'object',
+  //       properties: {
+  //         query: {
+  //           type: 'string',
+  //           description: 'What the user wants to search.',
+  //         },
+  //       },
+  //       required: ['query'],
+  //     },
+  //   },
+  // },
+  // {
+  //   type: 'function',
+  //   function: {
+  //     name: 'get_latest_news',
+  //     description: 'Get the latest news articles on a specific topic',
+  //     parameters: {
+  //       type: 'object',
+  //       properties: {
+  //         topic: {
+  //           type: 'string',
+  //           description:
+  //             "The topic to get news about (e.g., 'technology', 'sports', 'business')",
+  //         },
+  //         count: {
+  //           type: 'number',
+  //           description: 'Number of news articles to return (default: 5)',
+  //         },
+  //       },
+  //       required: ['topic'],
+  //     },
+  //   },
+  // },
   {
     type: 'function',
     function: {
       name: 'get_todos',
-      description: 'Retrieve all todos and tasks saved by the user',
+      description:
+        'Retrieve all to-dos or todos or to-do and tasks saved by the user',
     },
   },
   {
@@ -319,7 +337,7 @@ export const tools: ChatCompletionTool[] = [
     function: {
       name: 'create_todo',
       description:
-        'Create and save a new todo of the user using title & "description", "description" is not mandatory',
+        'Create and save a new to-do or todo or to-dos of the user using title & description, "description" is not mandatory',
       parameters: {
         type: 'object',
         properties: {
@@ -361,92 +379,92 @@ export const tools: ChatCompletionTool[] = [
       },
     },
   },
-  {
-    type: 'function',
-    function: {
-      name: 'set_reminder',
-      description: 'Set a reminder for a specific date and time',
-      parameters: {
-        type: 'object',
-        properties: {
-          title: {
-            type: 'string',
-            description: 'Title of the reminder',
-          },
-          description: {
-            type: 'string',
-            description: '"description" of what to be reminded about',
-          },
-          dueDate: {
-            type: 'string',
-            description: 'Due date in YYYY-MM-DD format',
-          },
-          dueTime: {
-            type: 'string',
-            description: 'Due time in HH:MM format (24-hour)',
-          },
-          priority: {
-            type: 'string',
-            enum: ['low', 'medium', 'high'],
-            description: '"priority" level of the reminder (default: medium)',
-          },
-        },
-        required: ['title', '"dueDate"', '"dueTime"'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'get_reminders',
-      description: 'Get all reminders set by the user',
-      parameters: {
-        type: 'object',
-        properties: {
-          includeCompleted: {
-            type: 'boolean',
-            description:
-              'Whether to include completed reminders (default: false)',
-          },
-        },
-        required: [],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'complete_reminder',
-      description: 'Mark a reminder as completed',
-      parameters: {
-        type: 'object',
-        properties: {
-          id: {
-            type: 'string',
-            description: '"id" of the reminder to complete',
-          },
-        },
-        required: ['"id"'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'delete_reminder',
-      description: 'Delete a reminder',
-      parameters: {
-        type: 'object',
-        properties: {
-          id: {
-            type: 'string',
-            description: '"id" of the reminder to delete',
-          },
-        },
-        required: ['"id"'],
-      },
-    },
-  },
+  // {
+  //   type: 'function',
+  //   function: {
+  //     name: 'set_reminder',
+  //     description: 'Set a reminder for a specific date and time',
+  //     parameters: {
+  //       type: 'object',
+  //       properties: {
+  //         title: {
+  //           type: 'string',
+  //           description: 'Title of the reminder',
+  //         },
+  //         description: {
+  //           type: 'string',
+  //           description: '"description" of what to be reminded about',
+  //         },
+  //         dueDate: {
+  //           type: 'string',
+  //           description: 'Due date in YYYY-MM-DD format',
+  //         },
+  //         dueTime: {
+  //           type: 'string',
+  //           description: 'Due time in HH:MM format (24-hour)',
+  //         },
+  //         priority: {
+  //           type: 'string',
+  //           enum: ['low', 'medium', 'high'],
+  //           description: '"priority" level of the reminder (default: medium)',
+  //         },
+  //       },
+  //       required: ['title', '"dueDate"', '"dueTime"'],
+  //     },
+  //   },
+  // },
+  // {
+  //   type: 'function',
+  //   function: {
+  //     name: 'get_reminders',
+  //     description: 'Get all reminders set by the user',
+  //     parameters: {
+  //       type: 'object',
+  //       properties: {
+  //         includeCompleted: {
+  //           type: 'boolean',
+  //           description:
+  //             'Whether to include completed reminders (default: false)',
+  //         },
+  //       },
+  //       required: [],
+  //     },
+  //   },
+  // },
+  // {
+  //   type: 'function',
+  //   function: {
+  //     name: 'complete_reminder',
+  //     description: 'Mark a reminder as completed',
+  //     parameters: {
+  //       type: 'object',
+  //       properties: {
+  //         id: {
+  //           type: 'string',
+  //           description: '"id" of the reminder to complete',
+  //         },
+  //       },
+  //       required: ['"id"'],
+  //     },
+  //   },
+  // },
+  // {
+  //   type: 'function',
+  //   function: {
+  //     name: 'delete_reminder',
+  //     description: 'Delete a reminder',
+  //     parameters: {
+  //       type: 'object',
+  //       properties: {
+  //         id: {
+  //           type: 'string',
+  //           description: '"id" of the reminder to delete',
+  //         },
+  //       },
+  //       required: ['"id"'],
+  //     },
+  //   },
+  // },
   {
     type: 'function',
     function: {

@@ -1,11 +1,7 @@
 import type { WebSocket } from 'ws';
 import type { RedisMessage, WSMessage } from '../types/index.ts';
 import storage from '../storage.ts';
-import {
-  getOpenAiClient,
-  sessionManager,
-  startInactivityTimer,
-} from './helpers.ts';
+import { getOpenAiClient, sessionManager } from './helpers.ts';
 import { tools } from './tools.ts';
 import { instructions } from './constants.ts';
 import { logger } from '../utils/logger.ts';
@@ -33,121 +29,32 @@ import {
 } from '../functions/scheduleMeeting.ts';
 import { ChatCompletionToolMessageParam } from 'groq-sdk/src/resources/chat.js';
 import { giveIntro } from '../functions/giveIntro.ts';
+import { compareWithAlexa } from '../functions/compareWithAlexa.ts';
+import { maydayCall } from '../functions/mayday.ts';
+// import { fetchContacts } from '../functions/contacts.ts';
+import { messageRequiresTool } from './tmp.ts';
 
-// Function to detect if a message likely requires tools
-function messageRequiresTool(message) {
-  const toolKeywords = {
-    get_weather: [
-      'weather',
-      'temperature',
-      'forecast',
-      'rain',
-      'sunny',
-      'humid',
-      'how hot',
-      'how cold',
-      'degrees',
-    ],
-    send_email: ['email', 'send', 'write', 'message to', 'mail to', 'contact'],
-    schedule_meeting: [
-      'schedule',
-      'meeting',
-      'appointment',
-      'calendar',
-      'book a',
-      'meet with',
-      'setup a call',
-    ],
-    cancel_meeting: ['cancel', 'reschedule', 'postpone', 'delete meeting'],
-    get_upcoming_meetings: [
-      'upcoming',
-      'next meeting',
-      'schedule for',
-      'this week',
-      'calendar events',
-    ],
-    web_search: [
-      'search',
-      'look up',
-      'find information',
-      'google',
-      'what is',
-      'who is',
-      'when did',
-      'where is',
-    ],
-    create_todo: [
-      'add task',
-      'new todo',
-      'create reminder',
-      'add to my list',
-      'remind me to',
-    ],
-    get_todos: [
-      'show tasks',
-      'list todos',
-      'what are my tasks',
-      'pending tasks',
-      'my todo list',
-    ],
-    update_todo: ['change task', 'update todo', 'modify task', 'edit reminder'],
-    delete_todo: ['remove task', 'delete todo', 'clear task'],
-    mark_todo_as_complete: [
-      'complete task',
-      'mark done',
-      'finish todo',
-      'completed',
-      'check off',
-    ],
-  };
-
-  const lowercaseMsg = message.toLowerCase();
-
-  // Check each tool's keywords
-  for (const [tool, keywords] of Object.entries(toolKeywords)) {
-    if (keywords.some((keyword) => lowercaseMsg.includes(keyword))) {
-      return {
-        requiresTool: true,
-        likelyTool: tool,
-      };
-    }
-  }
-
-  return {
-    requiresTool: false,
-    likelyTool: null,
-  };
+export interface Contact {
+  id: string;
+  email: string;
+  phone: string;
+  timestamp: number;
+  name: string;
 }
 
-// Function to enhance instructions based on tool likelihood
-function getEnhancedInstructions(baseInstructions, message) {
-  const { requiresTool, likelyTool } = messageRequiresTool(message);
-
-  if (!requiresTool) return baseInstructions;
-
-  // Add tool-specific instructions
-  return `
-${baseInstructions}
-
-## TOOL USAGE - CRITICAL INSTRUCTION
-The user's request is related to "${likelyTool}". You MUST use the appropriate tool for this request instead of simulating the action.
-- NEVER respond with placeholders or pretend to perform the action
-- ALWAYS use the tool system for ${likelyTool} operations
-- Call the appropriate tool with the required parameters extracted from the user's request
-- Wait for the tool response before providing your final answer
-
-DO NOT RESPOND WITHOUT USING THE APPROPRIATE TOOL FOR THIS REQUEST.
-`;
-}
+// let contacts: Contact[] = [];
 
 export const handleNewMessage = async (
   message: WebSocket.RawData | string,
   ws: WebSocket,
 ) => {
-  startInactivityTimer(ws);
+  // startInactivityTimer(ws);
+
   const currentSession = sessionManager.get();
   const aiClient = getOpenAiClient();
   const prevMessages = (await storage.getMessages(currentSession)) ?? [];
+
+  // contacts = await fetchContacts();
 
   try {
     const messageData: WSMessage = JSON.parse(message.toString());
@@ -159,67 +66,68 @@ export const handleNewMessage = async (
 
     console.log('User:', messageData.content);
 
+    const pass = 'wake up';
     // Check for authentication if needed
-    // if (
-    //   !sessionManager.isAuthenticated() &&
-    //   !messageData.content.toLowerCase().includes('248142')
-    // ) {
-    //   // If not authenticated and message doesn't contain password
-    //   if (messageData.content.toLowerCase().includes('hey lisa')) {
-    //     // If greeting is correct, ask for password
-    //     ws.send(
-    //       JSON.stringify({
-    //         role: 'assistant',
-    //         content:
-    //           'Hello! For security purposes, please provide your password.',
-    //         sessionActive: true,
-    //       }),
-    //     );
-    //     return;
-    //   } else {
-    //     // If no greeting, prompt for correct greeting
-    //     ws.send(
-    //       JSON.stringify({
-    //         role: 'assistant',
-    //         content: "I'm waiting for you to greet me properly.",
-    //         sessionActive: true,
-    //       }),
-    //     );
-    //     return;
-    //   }
-    // } else if (
-    //   !sessionManager.isAuthenticated() &&
-    //   messageData.content.includes('248142')
-    // ) {
-    //   // Password provided, authenticate
-    //   sessionManager.authenticate();
-    //   ws.send(
-    //     JSON.stringify({
-    //       role: 'assistant',
-    //       content:
-    //         "Hey Robin! I'm now ready to assist you. What can I help you with today?",
-    //       sessionActive: true,
-    //     }),
-    //   );
-    //   return;
-    // }
+    if (
+      !sessionManager.isAuthenticated() &&
+      !messageData.content.toLowerCase().includes(pass)
+    ) {
+      // If not authenticated and message doesn't contain password
+      if (messageData.content.toLowerCase().includes('lisa')) {
+        // If greeting is correct, ask for password
+        ws.send(
+          JSON.stringify({
+            role: 'assistant',
+            content:
+              'Hello! For security purposes, please provide your password.',
+            sessionActive: true,
+          }),
+        );
+        return;
+      } else {
+        // If no greeting, prompt for correct greeting
+        ws.send(
+          JSON.stringify({
+            role: 'assistant',
+            content: "I'm waiting for you to greet me properly.",
+            sessionActive: true,
+          }),
+        );
+        return;
+      }
+    } else if (
+      !sessionManager.isAuthenticated() &&
+      messageData.content.includes(pass)
+    ) {
+      // Password provided, authenticate
+      sessionManager.authenticate();
+      ws.send(
+        JSON.stringify({
+          role: 'assistant',
+          content:
+            "Hey Robin! I'm now ready to assist you. What can I help you with today?",
+          sessionActive: true,
+        }),
+      );
+      return;
+    }
 
-    // Enhance instructions based on message content
-    const enhancedInstructions = getEnhancedInstructions(
-      instructions,
-      messageData.content,
-    );
+    // // Enhance instructions based on message content
+    // const enhancedInstructions = getEnhancedInstructions(
+    //   instructions,
+    //   messageData.content,
+    // );
 
     // Determine if we should use a lower temperature based on tool detection
-    const { requiresTool } = messageRequiresTool(messageData.content);
-    const temperatureValue = requiresTool ? 0.2 : 0.7; // Lower temperature for tool usage
+    // const { requiresTool } = messageRequiresTool(messageData.content);
+    // const temperatureValue = requiresTool ? 0.2 : 0.7; // Lower temperature for tool usage
 
     const response = await aiClient.chat.completions.create({
       model: 'llama-3.1-8b-instant',
       messages: [
         {
           role: 'system',
-          content: enhancedInstructions,
+          content: instructions,
         },
         ...prevMessages.slice(1).slice(-5),
         {
@@ -227,7 +135,6 @@ export const handleNewMessage = async (
           content: messageData.content,
         },
       ],
-      temperature: temperatureValue,
       max_completion_tokens: 1024,
       tools,
     });
@@ -252,20 +159,28 @@ export const handleNewMessage = async (
         },
       ]);
 
-      console.log(
-        'Assistant:',
-        assistantMessage.content || "I'm working on that for you now...",
-      );
+      // if (
+      //   !(
+      //     toolCalls.length === 1 &&
+      //     (toolCalls[0].function.name === 'give_introduction' ||
+      //       toolCalls[0].function.name === 'compare_with_alexa')
+      //   )
+      // ) {
+      //   console.log(
+      //     'Assistant:',
+      //     assistantMessage.content || "I'm working on that for you now...",
+      //   );
 
-      // Send an immediate response to the user that we're processing their request
-      ws.send(
-        JSON.stringify({
-          role: 'assistant',
-          content:
-            assistantMessage.content || "I'm working on that for you now...",
-          sessionActive: true,
-        }),
-      );
+      //   // Send an immediate response to the user that we're processing their request
+      // ws.send(
+      //   JSON.stringify({
+      //     role: 'assistant',
+      //     content:
+      //       assistantMessage.content || "I'm working on that for you now...",
+      //     sessionActive: true,
+      //   }),
+      // );
+      // }
 
       // extend type ChatCompletionToolMessageParam to include name and create a new type
       type ToolCallParam = ChatCompletionToolMessageParam & {
@@ -283,29 +198,54 @@ export const handleNewMessage = async (
           let content = '';
 
           if (functionName === 'get_weather') {
+            ws.send(
+              JSON.stringify({
+                role: 'assistant',
+                content:
+                  assistantMessage.content ||
+                  "I'm working on that for you now...",
+                sessionActive: true,
+              }),
+            );
+
             content = await getWeatherData(
               functionArgs.location,
               functionArgs.unit,
             );
             console.log('Get Weather called\n');
           } else if (functionName === 'send_email') {
+            ws.send(
+              JSON.stringify({
+                role: 'assistant',
+                content:
+                  assistantMessage.content ||
+                  "I'm working on that for you now...",
+                sessionActive: true,
+              }),
+            );
+
             content = await sendEmail(
               functionArgs.to,
               functionArgs.subject,
               functionArgs.body,
             );
           } else if (functionName === 'schedule_meeting') {
+            ws.send(
+              JSON.stringify({
+                role: 'assistant',
+                content:
+                  assistantMessage.content ||
+                  "I'm working on that for you now...",
+                sessionActive: true,
+              }),
+            );
+
             console.log('Meeting Scheduled funtion called');
             content = await scheduleMeeting(
-              functionArgs.clientName,
-              functionArgs.clientEmail,
+              functionArgs.name,
+              functionArgs.email,
               functionArgs.date,
-              functionArgs.startTime,
-              functionArgs.duration || 60, // Provide defaults for optional parameters
-              functionArgs.projectName || '',
-              functionArgs.notes || '',
-              functionArgs.location || 'Google Meet',
-              functionArgs.timeZone || 'America/Los_Angeles',
+              functionArgs.time,
             );
             console.log('Meeting Scheduled : ' + content);
           } else if (functionName === 'cancel_meeting') {
@@ -321,9 +261,29 @@ export const handleNewMessage = async (
             );
             console.log('Meeting Retrieved : ' + content);
           } else if (functionName === 'web_search') {
+            ws.send(
+              JSON.stringify({
+                role: 'assistant',
+                content:
+                  assistantMessage.content ||
+                  "I'm working on that for you now...",
+                sessionActive: true,
+              }),
+            );
+
             console.log('Web search triggered\n');
             content = await performWebSearch(functionArgs.query);
-          } else if (functionName === 'mark_todo_as_complete') {
+          } else if (functionName === '`mark_todo_as_complete`') {
+            ws.send(
+              JSON.stringify({
+                role: 'assistant',
+                content:
+                  assistantMessage.content ||
+                  "I'm working on that for you now...",
+                sessionActive: true,
+              }),
+            );
+
             content = await markTodoAsComplete(functionArgs.id);
           } else if (functionName === 'create_todo') {
             content = await createTodo(
@@ -331,6 +291,16 @@ export const handleNewMessage = async (
               functionArgs.description,
             );
           } else if (functionName === 'get_todos') {
+            ws.send(
+              JSON.stringify({
+                role: 'assistant',
+                content:
+                  assistantMessage.content ||
+                  "I'm working on that for you now...",
+                sessionActive: true,
+              }),
+            );
+
             content = JSON.stringify(await getTodos());
             console.log('Content' + content);
           } else if (functionName === 'delete_todo') {
@@ -343,12 +313,32 @@ export const handleNewMessage = async (
               functionArgs.description,
             );
           } else if (functionName === 'get_weather_forecast') {
+            ws.send(
+              JSON.stringify({
+                role: 'assistant',
+                content:
+                  assistantMessage.content ||
+                  "I'm working on that for you now...",
+                sessionActive: true,
+              }),
+            );
+
             content = await getWeatherForecast(
               functionArgs.location,
               functionArgs.days,
               functionArgs.unit,
             );
           } else if (functionName === 'get_latest_news') {
+            ws.send(
+              JSON.stringify({
+                role: 'assistant',
+                content:
+                  assistantMessage.content ||
+                  "I'm working on that for you now...",
+                sessionActive: true,
+              }),
+            );
+
             content = await getLatestNews(
               functionArgs.topic,
               functionArgs.count,
@@ -374,8 +364,11 @@ export const handleNewMessage = async (
               functionArgs.body,
             );
           } else if (functionName === 'give_introduction') {
-            await giveIntro(ws);
-            return null;
+            content = await giveIntro(ws);
+          } else if (functionName === 'compare_with_alexa') {
+            content = await compareWithAlexa(ws);
+          } else if (functionName === 'mayday_call') {
+            content = await maydayCall();
           }
 
           return {
@@ -389,6 +382,16 @@ export const handleNewMessage = async (
 
       // Filter out null results
       const validToolResults = toolResults.filter((result) => result !== null);
+
+      if (
+        validToolResults.length === 1 &&
+        (validToolResults[0].name === 'give_introduction' ||
+          validToolResults[0].name === 'compare_with_alexa' ||
+          validToolResults[0].name === 'mayday_call')
+      ) {
+        console.log('returning');
+        return;
+      }
 
       // Get a new response from the AI with the tool results
       const toolResponseMessage = await aiClient.chat.completions.create({
@@ -561,7 +564,7 @@ This is a direct command to use tools for this request.
       );
     }
 
-    startInactivityTimer(ws);
+    // startInactivityTimer(ws);
   } catch (error) {
     console.log(
       'Assistant:',

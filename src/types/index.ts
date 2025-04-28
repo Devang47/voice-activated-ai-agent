@@ -7,6 +7,7 @@ export type WSMessage = {
   role: string;
   content: string;
   sessionActive: boolean;
+  sos?: boolean;
 };
 
 export type WeatherResponse = {

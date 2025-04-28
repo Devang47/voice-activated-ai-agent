@@ -64,20 +64,23 @@ export const startRecording = (
         data.results[0].isFinal
       ) {
         const transcript = data.results[0].alternatives[0].transcript;
-        console.log(`Transcription: ${transcript}`);
-
-        if (!inputStarted && transcript.toLowerCase().includes('lisa')) {
+        if (transcript.toLowerCase().includes('lisa')) {
           logger.info('Keyword detected, starting recording...');
           inputStarted = true;
           finalTranscript = '';
         }
+
+        console.log(`Transcription: ${transcript}`);
         finalTranscript += ' ' + transcript;
 
         if (
           finalTranscript.includes('thank you') ||
           finalTranscript.includes('thank u') ||
           finalTranscript.includes('thanks') ||
-          finalTranscript.includes('stop')
+          finalTranscript.includes('stop') ||
+          finalTranscript.includes('mayday') ||
+          finalTranscript.includes('wake up') ||
+          finalTranscript.includes('emergency')
         ) {
           logger.info('Thank you detected, stopping recording...');
           handleEndStream(finalTranscript.trim());
