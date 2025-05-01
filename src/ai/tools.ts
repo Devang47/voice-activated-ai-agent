@@ -479,7 +479,7 @@ export const tools: ChatCompletionTool[] = [
     function: {
       name: 'start_interview_mode',
       description:
-        'start the mock or real interview mode for the user using the already provided resume and job description',
+        "starts the mock interview mode for the user using the user's resume and job description",
       strict: true,
     },
   },
