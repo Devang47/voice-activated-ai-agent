@@ -142,6 +142,8 @@ Additional Guidelines:
 - If cultural fit is mentioned in the job description, include relevant questions (e.g., “How do you approach collaboration in a team?”).
 - Detect inconsistencies by asking for clarification or examples to verify claims (e.g., “Your resume mentions [skill], but you didn't elaborate. Can you share more details?”).
 
+When the user tells you to compile a report or save the results, first create a detailed report of the user's interview and then use the function "save_results_end_interview" with the end report.
+
 ## Here is the user's resume: 
 """
 ${resume}
