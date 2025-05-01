@@ -14,8 +14,9 @@ if (!process.env.WS_SERVER_URL) {
   throw new Error('WebSocket server URL is not defined');
 }
 
-// Keep track of the recording instance
-let recordingInstance: any = null;
+// Keep track of the recording instances
+let recordingStream: any = null;
+let recorderInstance: any = null;
 
 export const wsConnection = connectToWebSocketServer(
   process.env.WS_SERVER_URL,
@@ -25,8 +26,12 @@ export const wsConnection = connectToWebSocketServer(
     reconnectInterval: 2000,
     onOpen: () => {
       // Only start listening if not already recording
-      if (!recordingInstance) {
-        recordingInstance = startListening(wsConnection);
+      if (!recordingStream) {
+        const result = startListening(wsConnection);
+        if (result) {
+          recordingStream = result.stream;
+          recorderInstance = result.recorder;
+        }
       }
     },
     onClose: () => {
@@ -52,17 +57,17 @@ const startListening = (ws: WebSocket) => {
   logger.info('Starting microphone recording...');
 
   try {
-    const recording = recorder
-      .record({
-        sampleRateHertz: sampleRateHertz,
-        threshold: 0,
-        verbose: false,
-        recordProgram: 'arecord',
-        silence: '1.0',
-        // Adding additional options for stability
-        channels: 1,
-        audioType: 'raw',
-      })
+    const recorderObj = recorder.record({
+      sampleRateHertz: sampleRateHertz,
+      threshold: 0,
+      verbose: false,
+      recordProgram: 'arecord',
+      silence: '1.0',
+      channels: 1,
+      audioType: 'raw',
+    });
+
+    const stream = recorderObj
       .stream()
       .on('data', (data) => {
         try {
@@ -86,11 +91,10 @@ const startListening = (ws: WebSocket) => {
       .on('error', (error) => {
         logger.error('Recording error:', error);
         stopListening();
-        // Don't automatically close the WebSocket, just log the error
       });
 
     logger.info('Microphone input is now streaming to WebSocket');
-    return recording;
+    return { stream, recorder: recorderObj };
   } catch (recordError) {
     logger.error('Failed to start recording:', recordError);
     return null;
@@ -99,14 +103,32 @@ const startListening = (ws: WebSocket) => {
 
 // Function to stop recording
 const stopListening = () => {
-  if (recordingInstance) {
+  if (recorderInstance) {
     logger.info('Stopping microphone recording...');
     try {
-      recordingInstance.stop();
-      recordingInstance = null;
+      // First close the stream if it exists
+      if (recordingStream) {
+        recordingStream.removeAllListeners();
+        recordingStream.end();
+        recordingStream = null;
+      }
+
+      // Then stop the recorder
+      if (typeof recorderInstance.stop === 'function') {
+        recorderInstance.stop();
+      } else if (typeof recorderInstance.destroy === 'function') {
+        recorderInstance.destroy();
+      } else {
+        logger.warn('Could not find appropriate method to stop the recorder');
+      }
+
+      recorderInstance = null;
       logger.info('Microphone recording stopped');
     } catch (error) {
       logger.error('Error stopping recording:', error);
+      // Reset the instances even if there was an error
+      recordingStream = null;
+      recorderInstance = null;
     }
   }
 };
