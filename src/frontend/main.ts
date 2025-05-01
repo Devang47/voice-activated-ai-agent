@@ -40,9 +40,8 @@ const startListening = (ws: WebSocket) => {
     .stream()
     .on('data', (data) => {
       // Optional: Log data chunks if needed for debugging
-      // logger.debug(`Sending audio chunk: ${data.length} bytes`);
+      logger.debug(`Sending audio chunk: ${data.length} bytes`);
       if (ws.readyState === WebSocket.OPEN) {
-        console.log('sending data');
         ws.send(data);
       }
     })
