@@ -38,10 +38,13 @@ const startListening = (ws: WebSocket) => {
       silence: '1.0',
     })
     .stream()
-    // .on('data', (data) => {
-    // Optional: Log data chunks if needed for debugging
-    // logger.debug(`Sending audio chunk: ${data.length} bytes`);
-    // })
+    .on('data', (data) => {
+      // Optional: Log data chunks if needed for debugging
+      // logger.debug(`Sending audio chunk: ${data.length} bytes`);
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(data);
+      }
+    })
     .on('error', (error) => {
       logger.error('Recording error:', error);
       ws.close();
