@@ -51,7 +51,7 @@ const startListening = (ws: WebSocket) => {
     });
 
   // Pipe the microphone data directly to the WebSocket
-  recordingInstance.pipe(ws);
+  // recordingInstance.pipe(ws);
 
   logger.info('Microphone input is now streaming to WebSocket');
 
