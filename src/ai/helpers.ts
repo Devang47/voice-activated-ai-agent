@@ -34,6 +34,7 @@ class SessionManager {
   private authenticated = false;
   private authTimer: NodeJS.Timeout | null = null;
   private authTimeout = 120000; // 2 minutes in milliseconds
+  public interviewModeOn = false;
 
   // Singleton pattern
   public static getInstance(): SessionManager {
@@ -79,6 +80,13 @@ class SessionManager {
         logger.info('Authentication expired');
       }, this.authTimeout);
     }
+  }
+
+  public toggleInterviewMode(): void {
+    this.interviewModeOn = !this.interviewModeOn;
+    logger.info(
+      `Interview mode ${this.interviewModeOn ? 'enabled' : 'disabled'}`,
+    );
   }
 }
 

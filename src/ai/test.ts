@@ -1,6 +1,6 @@
 import type { WebSocket } from 'ws';
 import { handleNewMessage } from './handlers.ts';
-import { sessionManager, startInactivityTimer } from './helpers.ts';
+import { sessionManager } from './helpers.ts';
 import { logger } from '../utils/logger.ts';
 
 import readline from 'readline';
@@ -49,7 +49,7 @@ export const sendMessage = (ws: WebSocket, message: string) => {
 export const handleWSConnection = (ws: WebSocket) => {
   logger.info('New WS connection established');
 
-  startInactivityTimer(ws);
+  // startInactivityTimer(ws);
   const sId = sessionManager.create();
 
   ws.on('message', (message) => handleNewMessage(message, ws));

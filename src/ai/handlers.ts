@@ -30,6 +30,8 @@ import {
 import { ChatCompletionToolMessageParam } from 'groq-sdk/src/resources/chat.js';
 import { maydayCall } from '../functions/mayday.ts';
 import { fetchContacts } from '../functions/contacts.ts';
+import { handleStartInterviewMode } from '../functions/interviewMode.ts';
+import { handleInterviewMessage } from '../functions/interview.ts';
 
 export interface Contact {
   id: string;
@@ -47,6 +49,15 @@ export const handleNewMessage = async (
 ) => {
   const currentSession = sessionManager.get();
   const aiClient = getOpenAiClient();
+
+  if (sessionManager.interviewModeOn) {
+    const messageData: WSMessage = JSON.parse(message.toString());
+
+    handleInterviewMessage(messageData, ws);
+
+    return;
+  }
+
   const prevMessages = (await storage.getMessages(currentSession)) ?? [];
 
   let updatedInstructions = instructions;
@@ -386,6 +397,18 @@ ${contacts.map((cnt) => `Name: ${cnt.name} - Email: ${cnt.email} \n`)}
               functionArgs.subject,
               functionArgs.body,
             );
+          } else if (functionName === 'start_interview_mode') {
+            content = await handleStartInterviewMode(ws, () => {
+              sessionManager.toggleInterviewMode();
+
+              handleNewMessage(
+                JSON.stringify({
+                  role: 'user',
+                  content: 'lets start the interview',
+                }),
+                ws,
+              );
+            });
           }
           // else if (functionName === 'give_introduction') {
           //   content = await giveIntro(ws);
@@ -409,7 +432,8 @@ ${contacts.map((cnt) => `Name: ${cnt.name} - Email: ${cnt.email} \n`)}
 
       if (
         validToolResults.length === 1 &&
-        validToolResults[0].name === 'mayday_call'
+        (validToolResults[0].name === 'mayday_call' ||
+          validToolResults[0].name === 'start_interview_mode')
       ) {
         console.log('returning');
         return;

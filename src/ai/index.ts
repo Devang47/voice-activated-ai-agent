@@ -9,7 +9,7 @@ let flag = false;
 
 // Map to store all active WebSocket connections
 // Using Map with sessionId as key and WebSocket as value
-const connections = new Map<string, WebSocket>();
+export const connections = new Map<string, WebSocket>();
 
 // Function to broadcast a message to all connected clients
 export const broadcastMessage = (message: WSMessage): void => {

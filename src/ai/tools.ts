@@ -474,4 +474,13 @@ export const tools: ChatCompletionTool[] = [
       strict: true,
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'start_interview_mode',
+      description:
+        'start the mock or real interview mode for the user using the already provided resume and job description',
+      strict: true,
+    },
+  },
 ];
