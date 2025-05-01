@@ -267,7 +267,7 @@ Automatically scheduled by LISA.
     }
 
     // Log the event being created
-    logger.info(`Creating calendar event: ${JSON.stringify(event, null, 2)}`);
+    // logger.info(`Creating calendar event: ${JSON.stringify(event, null, 2)}`);
 
     const response = await calendar.events.insert({
       calendarId: 'primary',

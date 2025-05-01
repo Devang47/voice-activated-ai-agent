@@ -3,7 +3,7 @@ import type { RedisMessage, WSMessage } from '../types/index.ts';
 import storage from '../storage.ts';
 import { getOpenAiClient, sessionManager } from './helpers.ts';
 import { tools } from './tools.ts';
-import { instructions } from './constants.ts';
+import { AI_MODAL, instructions } from './constants.ts';
 import { logger } from '../utils/logger.ts';
 import {
   getWeatherData,
@@ -15,7 +15,7 @@ import {
   getTodos,
   deleteTodo,
   updateTodo,
-  getWeatherForecast,
+  // getWeatherForecast,
   getLatestNews,
   setReminder,
   getReminders,
@@ -28,11 +28,8 @@ import {
   scheduleMeeting,
 } from '../functions/scheduleMeeting.ts';
 import { ChatCompletionToolMessageParam } from 'groq-sdk/src/resources/chat.js';
-import { giveIntro } from '../functions/giveIntro.ts';
-import { compareWithAlexa } from '../functions/compareWithAlexa.ts';
 import { maydayCall } from '../functions/mayday.ts';
-// import { fetchContacts } from '../functions/contacts.ts';
-// import { messageRequiresTool } from './tmp.ts';
+import { fetchContacts } from '../functions/contacts.ts';
 
 export interface Contact {
   id: string;
@@ -42,7 +39,7 @@ export interface Contact {
   name: string;
 }
 
-// let contacts: Contact[] = [];
+let contacts: Contact[] = [];
 
 export const handleNewMessage = async (
   message: WebSocket.RawData | string,
@@ -52,7 +49,18 @@ export const handleNewMessage = async (
   const aiClient = getOpenAiClient();
   const prevMessages = (await storage.getMessages(currentSession)) ?? [];
 
-  // contacts = await fetchContacts();
+  let updatedInstructions = instructions;
+
+  contacts = await fetchContacts();
+  if (contacts.length) {
+    updatedInstructions =
+      instructions +
+      `
+## CONTACT LIST
+## These are existing saved contacts, please use these details whenever a user is mentioned:
+${contacts.map((cnt) => `Name: ${cnt.name} - Email: ${cnt.email} \n`)}
+`;
+  }
 
   try {
     const messageData: WSMessage = JSON.parse(message.toString());
@@ -122,13 +130,14 @@ export const handleNewMessage = async (
     // const temperatureValue = requiresTool ? 0.2 : 0.7; // Lower temperature for tool usage
 
     const response = await aiClient.chat.completions.create({
-      model: 'llama-3.1-8b-instant',
+      model: AI_MODAL,
       messages: [
         {
           role: 'system',
-          content: instructions,
+          content: updatedInstructions,
         },
-        ...prevMessages.slice(1).slice(-5),
+        // ...prevMessages.slice(1).slice(-5),
+        ...prevMessages,
         {
           role: 'user',
           content: messageData.content,
@@ -315,28 +324,30 @@ export const handleNewMessage = async (
               functionArgs.title,
               functionArgs.description,
             );
-          } else if (functionName === 'get_weather_forecast') {
-            console.log(
-              '[assistant]: ' +
-                (assistantMessage.content ||
-                  "I'm working on that for you now..."),
-            );
-            ws.send(
-              JSON.stringify({
-                role: 'assistant',
-                content:
-                  assistantMessage.content ||
-                  "I'm working on that for you now...",
-                sessionActive: true,
-              }),
-            );
+          }
+          // else if (functionName === 'get_weather_forecast') {
+          //   console.log(
+          //     '[assistant]: ' +
+          //       (assistantMessage.content ||
+          //         "I'm working on that for you now..."),
+          //   );
+          //   ws.send(
+          //     JSON.stringify({
+          //       role: 'assistant',
+          //       content:
+          //         assistantMessage.content ||
+          //         "I'm working on that for you now...",
+          //       sessionActive: true,
+          //     }),
+          //   );
 
-            content = await getWeatherForecast(
-              functionArgs.location,
-              functionArgs.days,
-              functionArgs.unit,
-            );
-          } else if (functionName === 'get_latest_news') {
+          //   content = await getWeatherForecast(
+          //     functionArgs.location,
+          //     functionArgs.days,
+          //     functionArgs.unit,
+          //   );
+          // }
+          else if (functionName === 'get_latest_news') {
             console.log(
               '[assistant]: ' +
                 (assistantMessage.content ||
@@ -375,11 +386,13 @@ export const handleNewMessage = async (
               functionArgs.subject,
               functionArgs.body,
             );
-          } else if (functionName === 'give_introduction') {
-            content = await giveIntro(ws);
-          } else if (functionName === 'compare_with_alexa') {
-            content = await compareWithAlexa(ws);
-          } else if (functionName === 'mayday_call') {
+          }
+          // else if (functionName === 'give_introduction') {
+          //   content = await giveIntro(ws);
+          // } else if (functionName === 'compare_with_alexa') {
+          //   content = await compareWithAlexa(ws);
+          // }
+          else if (functionName === 'mayday_call') {
             content = await maydayCall();
           }
 
@@ -396,24 +409,21 @@ export const handleNewMessage = async (
 
       if (
         validToolResults.length === 1 &&
-        (validToolResults[0].name === 'give_introduction' ||
-          validToolResults[0].name === 'compare_with_alexa' ||
-          validToolResults[0].name === 'mayday_call')
+        validToolResults[0].name === 'mayday_call'
       ) {
         console.log('returning');
         return;
       }
 
       const toolResponseMessage = await aiClient.chat.completions.create({
-        model: 'llama-3.1-8b-instant',
+        model: AI_MODAL,
         messages: [
           {
             role: 'system',
-            content:
-              instructions +
-              "\n\nIMPORTANT: The user has already been informed that you're processing their request. Now provide a friendly, natural response about what you've done. DO NOT include technical details or JSON in your response. Speak as if you've already completed the task.",
+            content: updatedInstructions,
           },
-          ...prevMessages.slice(1).slice(-5),
+          // ...prevMessages.slice(1).slice(-5),
+          ...prevMessages,
           {
             role: 'user',
             content: messageData.content,

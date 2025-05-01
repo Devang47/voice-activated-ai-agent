@@ -4,21 +4,6 @@ export const tools: ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
-      name: 'give_introduction',
-      description: 'Give a brief introduction about yourself (lisa)',
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'compare_with_alexa',
-      description:
-        'Use this when user asks you to compare yourself with Alexa, why are you different from alexa',
-    },
-  },
-  {
-    type: 'function',
-    function: {
       name: 'mayday_call',
       description:
         'Sends a emergency message to the users family members or friends',
@@ -251,45 +236,45 @@ export const tools: ChatCompletionTool[] = [
       strict: true,
     },
   },
-  // {
-  //   type: 'function',
-  //   function: {
-  //     name: 'web_search',
-  //     description: 'Performs a web search for the user query.',
-  //     parameters: {
-  //       type: 'object',
-  //       properties: {
-  //         query: {
-  //           type: 'string',
-  //           description: 'What the user wants to search.',
-  //         },
-  //       },
-  //       required: ['query'],
-  //     },
-  //   },
-  // },
-  // {
-  //   type: 'function',
-  //   function: {
-  //     name: 'get_latest_news',
-  //     description: 'Get the latest news articles on a specific topic',
-  //     parameters: {
-  //       type: 'object',
-  //       properties: {
-  //         topic: {
-  //           type: 'string',
-  //           description:
-  //             "The topic to get news about (e.g., 'technology', 'sports', 'business')",
-  //         },
-  //         count: {
-  //           type: 'number',
-  //           description: 'Number of news articles to return (default: 5)',
-  //         },
-  //       },
-  //       required: ['topic'],
-  //     },
-  //   },
-  // },
+  {
+    type: 'function',
+    function: {
+      name: 'web_search',
+      description: 'Performs a web search for the user query.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'What the user wants to search.',
+          },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_latest_news',
+      description: 'Get the latest news articles on a specific topic',
+      parameters: {
+        type: 'object',
+        properties: {
+          topic: {
+            type: 'string',
+            description:
+              "The topic to get news about (e.g., 'technology', 'sports', 'business')",
+          },
+          count: {
+            type: 'number',
+            description: 'Number of news articles to return (default: 5)',
+          },
+        },
+        required: ['topic'],
+      },
+    },
+  },
   {
     type: 'function',
     function: {

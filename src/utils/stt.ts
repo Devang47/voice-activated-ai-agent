@@ -12,7 +12,7 @@ let recordingInstance = null;
 let recognizeStream = null;
 let finalTranscript = '';
 
-let inputStarted = false;
+// let inputStarted = false;
 
 const createRequest: any = {
   config: {
@@ -40,7 +40,7 @@ export const startRecording = (
   handleEndStream: (transcript: string) => void,
 ) => {
   stopRecording();
-  inputStarted = true;
+  // inputStarted = true;
 
   logger.info('Start speaking...');
 
@@ -66,7 +66,7 @@ export const startRecording = (
         const transcript = data.results[0].alternatives[0].transcript;
         if (transcript.toLowerCase().includes('lisa')) {
           logger.info('Keyword detected, starting recording...');
-          inputStarted = true;
+          // inputStarted = true;
           finalTranscript = '';
         }
 
@@ -84,7 +84,7 @@ export const startRecording = (
         ) {
           logger.info('Thank you detected, stopping recording...');
           handleEndStream(finalTranscript.trim());
-          inputStarted = false;
+          // inputStarted = false;
           finalTranscript = '';
           logger.info('Recording stopped');
 
