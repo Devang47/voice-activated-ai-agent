@@ -4,8 +4,12 @@ import { sessionManager } from './helpers.ts';
 import { logger } from '../utils/logger.ts';
 // import { startRecording } from '../utils/stt.ts';
 import { WSMessage } from '../types/index.ts';
+// import { createRecognizeStream } from '../utils/stt.ts';
+import speech from '@google-cloud/speech';
 
 let flag = false;
+
+const client = new speech.SpeechClient();
 
 // Map to store all active WebSocket connections
 // Using Map with sessionId as key and WebSocket as value
@@ -36,6 +40,10 @@ export const handleWSConnection = (ws: WebSocket) => {
   // startInactivityTimer(ws);
   const sId = sessionManager.create();
 
+  // const recognizeStream = createRecognizeStream((msg) => {
+  //   console.log(msg);
+  // });
+
   // Add the new connection to our map
   connections.set(sId, ws);
   logger.info(
@@ -46,7 +54,43 @@ export const handleWSConnection = (ws: WebSocket) => {
   if (flag) return;
   else flag = true;
 
-  ws.on('message', (message) => handleNewMessage(message, ws));
+  // ws.on('message', (message) =>
+  //   handleRawWSMessage(recognizeStream, message, ws),
+  // );
+
+  const requestConfig: any = {
+    config: {
+      encoding: 'LINEAR16',
+      sampleRateHertz: 16000,
+      languageCode: 'en-US',
+      enableAutomaticPunctuation: true,
+    },
+    interimResults: true,
+  };
+
+  // Create recognition stream
+  const recognizeStream = client
+    .streamingRecognize(requestConfig)
+    .on('data', (response) => {
+      const result = response.results[0];
+      if (result && result.alternatives[0]) {
+        const transcript = result.alternatives[0].transcript;
+        console.log('Transcript:', transcript);
+        // Add your text processing logic here
+      }
+    })
+    .on('error', (err) => {
+      console.error('Speech-to-Text Error:', err);
+    })
+    .on('end', () => {
+      console.log('Speech-to-Text stream ended');
+    });
+
+  // Handle incoming audio data
+  ws.on('message', (audioData) => {
+    console.log('message');
+    recognizeStream.write(audioData);
+  });
 
   ws.on('close', () => {
     logger.info(`Client disconnected: ${sId}`);
@@ -66,4 +110,22 @@ export const handleWSConnection = (ws: WebSocket) => {
       sessionActive: true,
     }),
   );
+};
+
+const handleRawWSMessage = (
+  recognizeStream,
+  message: WebSocket.RawData,
+  ws: WebSocket,
+) => {
+  console.log(`Received message`);
+  if (
+    message instanceof ArrayBuffer ||
+    (message as any).buffer instanceof ArrayBuffer
+  ) {
+    console.log('processing');
+    const audioData =
+      message instanceof ArrayBuffer ? message : (message as any).buffer;
+
+    recognizeStream.write(audioData);
+  } else handleNewMessage(message, ws);
 };

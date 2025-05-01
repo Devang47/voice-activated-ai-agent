@@ -499,7 +499,6 @@ export const handleNewMessage = async (
     console.log(
       "[assistant]: I'm having trouble processing your request. Could you try again?",
     );
-
     ws.send(
       JSON.stringify({
         role: 'assistant',

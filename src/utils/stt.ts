@@ -1,17 +1,17 @@
 import speech from '@google-cloud/speech';
 import { logger } from './logger.ts';
-import recorder from 'node-record-lpcm16';
 
 const client = new speech.SpeechClient();
 
-const encoding = 'LINEAR16';
+const encoding = 'LINEAR16' as const;
 const sampleRateHertz = 16000;
 const languageCode = 'en-US';
 
-let recordingInstance = null;
+// let recordingInstance = null;
 let recognizeStream = null;
 let finalTranscript = '';
 
+// Create the request with proper typing
 const createRequest: any = {
   config: {
     encoding: encoding,
@@ -32,94 +32,80 @@ const createRequest: any = {
       },
     ],
   },
+  interimResults: true,
 };
 
-export const startRecording = (
-  handleEndStream: (transcript: string) => void,
-) => {
-  stopRecording();
-
-  logger.info('Start speaking...');
-
+/**
+ * Cleanup speech recognition resources
+ */
+export const cleanupSpeechRecognition = () => {
   if (recognizeStream) {
-    recognizeStream.removeAllListeners();
     recognizeStream.end();
+    recognizeStream.removeAllListeners();
+    recognizeStream = null;
+    logger.info('Speech recognition stream cleaned up');
+  }
+  finalTranscript = '';
+};
+
+/**
+ * Creates or returns an existing speech recognition stream
+ * @param handleSendMessage Callback function to handle the final transcript
+ * @returns Speech recognition stream
+ */
+export const createRecognizeStream = (
+  handleSendMessage: (finalTranscript: string) => void,
+) => {
+  if (recognizeStream && !recognizeStream.destroyed) {
+    return recognizeStream;
   }
 
+  logger.info('Initializing new Google Speech-to-Text API stream');
+
+  // Reset transcript for new streams
   finalTranscript = '';
 
   recognizeStream = client
     .streamingRecognize(createRequest)
     .on('error', (error) => {
       logger.error('Recognition error:', error);
-      stopRecording();
+      cleanupSpeechRecognition();
     })
     .on('data', (data) => {
-      if (
-        data.results[0] &&
-        data.results[0].alternatives[0] &&
-        data.results[0].isFinal
-      ) {
+      if (data.results[0] && data.results[0].alternatives[0]) {
         const transcript = data.results[0].alternatives[0].transcript;
+
         if (transcript.toLowerCase().includes('lisa')) {
           logger.info('Keyword detected, starting recording...');
           finalTranscript = '';
         }
 
         console.log(`Transcription: ${transcript}`);
-        finalTranscript += ' ' + transcript;
 
-        if (
-          finalTranscript.includes('thank you') ||
-          finalTranscript.includes('thank u') ||
-          finalTranscript.includes('thanks') ||
-          finalTranscript.includes('stop') ||
-          finalTranscript.includes('mayday') ||
-          finalTranscript.includes('wake up') ||
-          finalTranscript.includes('emergency')
-        ) {
-          logger.info('Thank you detected, stopping recording...');
-          handleEndStream(finalTranscript.trim());
-          finalTranscript = '';
-          logger.info('Recording stopped');
+        if (data.results[0].isFinal) {
+          finalTranscript += ' ' + transcript;
 
-          // stopRecording();
+          if (
+            finalTranscript.includes('thank you') ||
+            finalTranscript.includes('thank u') ||
+            finalTranscript.includes('thanks') ||
+            finalTranscript.includes('stop') ||
+            finalTranscript.includes('mayday') ||
+            finalTranscript.includes('wake up') ||
+            finalTranscript.includes('emergency')
+          ) {
+            logger.info('End command detected, sending transcript...');
+            handleSendMessage(finalTranscript.trim());
+
+            // Reset transcript and clean up for next interaction
+            cleanupSpeechRecognition();
+          }
         }
       }
+    })
+    .on('end', () => {
+      logger.info('Speech recognition stream ended');
     });
 
-  recordingInstance = recorder
-    .record({
-      sampleRateHertz: sampleRateHertz,
-      threshold: 0,
-      verbose: false,
-      recordProgram: 'arecord',
-      silence: '1.0',
-    })
-    .stream()
-    .on('error', (error) => {
-      logger.error('Recording error:', error);
-      stopRecording();
-    })
-    .pipe(recognizeStream);
-
-  return recordingInstance;
-};
-
-export const stopRecording = () => {
-  // Cleanup recording instance
-  if (recordingInstance) {
-    recordingInstance.unpipe();
-    recordingInstance.destroy();
-    recordingInstance = null;
-  }
-
-  // Cleanup recognize stream
-  if (recognizeStream) {
-    recognizeStream.end();
-    recognizeStream.removeAllListeners();
-    recognizeStream = null;
-  }
-
-  logger.info('Recording stopped');
+  return recognizeStream;
 };
