@@ -32,7 +32,7 @@ import { giveIntro } from '../functions/giveIntro.ts';
 import { compareWithAlexa } from '../functions/compareWithAlexa.ts';
 import { maydayCall } from '../functions/mayday.ts';
 // import { fetchContacts } from '../functions/contacts.ts';
-import { messageRequiresTool } from './tmp.ts';
+// import { messageRequiresTool } from './tmp.ts';
 
 export interface Contact {
   id: string;
@@ -48,8 +48,6 @@ export const handleNewMessage = async (
   message: WebSocket.RawData | string,
   ws: WebSocket,
 ) => {
-  // startInactivityTimer(ws);
-
   const currentSession = sessionManager.get();
   const aiClient = getOpenAiClient();
   const prevMessages = (await storage.getMessages(currentSession)) ?? [];
@@ -60,6 +58,7 @@ export const handleNewMessage = async (
     const messageData: WSMessage = JSON.parse(message.toString());
     if (!messageData.content) {
       logger.error('Empty content in message:', messageData);
+      console.log('[assistant]: Error: Message content cannot be empty');
       ws.send('Error: Message content cannot be empty');
       return;
     }
@@ -139,14 +138,11 @@ export const handleNewMessage = async (
       tools,
     });
 
-    console.log('printing' + response.choices[0].finish_reason);
-
     if (response.choices[0].finish_reason === 'tool_calls') {
       const toolCalls = response.choices[0].message.tool_calls;
       const assistantMessage = response.choices[0].message;
-      console.log('Tool Calls : ' + toolCalls);
+      console.log('Tool Calls: ' + JSON.stringify(toolCalls));
 
-      // Store user message and assistant's initial response (not the tool call details)
       await storage.addMessage(currentSession, [
         {
           role: 'user',
@@ -158,29 +154,6 @@ export const handleNewMessage = async (
             assistantMessage.content || 'Let me take care of that for you.',
         },
       ]);
-
-      // if (
-      //   !(
-      //     toolCalls.length === 1 &&
-      //     (toolCalls[0].function.name === 'give_introduction' ||
-      //       toolCalls[0].function.name === 'compare_with_alexa')
-      //   )
-      // ) {
-      //   console.log(
-      //     'Assistant:',
-      //     assistantMessage.content || "I'm working on that for you now...",
-      //   );
-
-      //   // Send an immediate response to the user that we're processing their request
-      // ws.send(
-      //   JSON.stringify({
-      //     role: 'assistant',
-      //     content:
-      //       assistantMessage.content || "I'm working on that for you now...",
-      //     sessionActive: true,
-      //   }),
-      // );
-      // }
 
       // extend type ChatCompletionToolMessageParam to include name and create a new type
       type ToolCallParam = ChatCompletionToolMessageParam & {
@@ -198,6 +171,11 @@ export const handleNewMessage = async (
           let content = '';
 
           if (functionName === 'get_weather') {
+            console.log(
+              '[assistant]: ' +
+                (assistantMessage.content ||
+                  "I'm working on that for you now..."),
+            );
             ws.send(
               JSON.stringify({
                 role: 'assistant',
@@ -214,6 +192,11 @@ export const handleNewMessage = async (
             );
             console.log('Get Weather called\n');
           } else if (functionName === 'send_email') {
+            console.log(
+              '[assistant]: ' +
+                (assistantMessage.content ||
+                  "I'm working on that for you now..."),
+            );
             ws.send(
               JSON.stringify({
                 role: 'assistant',
@@ -230,6 +213,11 @@ export const handleNewMessage = async (
               functionArgs.body,
             );
           } else if (functionName === 'schedule_meeting') {
+            console.log(
+              '[assistant]: ' +
+                (assistantMessage.content ||
+                  "I'm working on that for you now..."),
+            );
             ws.send(
               JSON.stringify({
                 role: 'assistant',
@@ -261,6 +249,11 @@ export const handleNewMessage = async (
             );
             console.log('Meeting Retrieved : ' + content);
           } else if (functionName === 'web_search') {
+            console.log(
+              '[assistant]: ' +
+                (assistantMessage.content ||
+                  "I'm working on that for you now..."),
+            );
             ws.send(
               JSON.stringify({
                 role: 'assistant',
@@ -274,6 +267,11 @@ export const handleNewMessage = async (
             console.log('Web search triggered\n');
             content = await performWebSearch(functionArgs.query);
           } else if (functionName === '`mark_todo_as_complete`') {
+            console.log(
+              '[assistant]: ' +
+                (assistantMessage.content ||
+                  "I'm working on that for you now..."),
+            );
             ws.send(
               JSON.stringify({
                 role: 'assistant',
@@ -291,6 +289,11 @@ export const handleNewMessage = async (
               functionArgs.description,
             );
           } else if (functionName === 'get_todos') {
+            console.log(
+              '[assistant]: ' +
+                (assistantMessage.content ||
+                  "I'm working on that for you now..."),
+            );
             ws.send(
               JSON.stringify({
                 role: 'assistant',
@@ -313,6 +316,11 @@ export const handleNewMessage = async (
               functionArgs.description,
             );
           } else if (functionName === 'get_weather_forecast') {
+            console.log(
+              '[assistant]: ' +
+                (assistantMessage.content ||
+                  "I'm working on that for you now..."),
+            );
             ws.send(
               JSON.stringify({
                 role: 'assistant',
@@ -329,6 +337,11 @@ export const handleNewMessage = async (
               functionArgs.unit,
             );
           } else if (functionName === 'get_latest_news') {
+            console.log(
+              '[assistant]: ' +
+                (assistantMessage.content ||
+                  "I'm working on that for you now..."),
+            );
             ws.send(
               JSON.stringify({
                 role: 'assistant',
@@ -358,7 +371,6 @@ export const handleNewMessage = async (
           } else if (functionName === 'get_reminders') {
             content = await getReminders(functionArgs.id);
           } else if (functionName === 'send_mail_to_users') {
-            // console.log('Send to all mail function triggered');
             content = await sendMailToAll(
               functionArgs.subject,
               functionArgs.body,
@@ -380,7 +392,6 @@ export const handleNewMessage = async (
         }),
       );
 
-      // Filter out null results
       const validToolResults = toolResults.filter((result) => result !== null);
 
       if (
@@ -393,7 +404,6 @@ export const handleNewMessage = async (
         return;
       }
 
-      // Get a new response from the AI with the tool results
       const toolResponseMessage = await aiClient.chat.completions.create({
         model: 'llama-3.1-8b-instant',
         messages: [
@@ -446,8 +456,9 @@ export const handleNewMessage = async (
       await storage.addMessage(currentSession, storageMessages);
 
       console.log(
-        toolResponseMessage.choices[0].message.content ||
-          "I've completed that task for you!",
+        '[assistant]: ' +
+          (toolResponseMessage.choices[0].message.content ||
+            "I've completed that task for you!"),
       );
 
       // Send the final response to the client
@@ -461,87 +472,6 @@ export const handleNewMessage = async (
         }),
       );
     } else {
-      // If tool was expected but not used, try one more time with stronger instructions
-      const { requiresTool, likelyTool } = messageRequiresTool(
-        messageData.content,
-      );
-
-      if (requiresTool && likelyTool) {
-        console.log(
-          `Tool was expected (${likelyTool}) but not used. Trying again with stronger instructions.`,
-        );
-
-        // Create even stronger tool instructions
-        const forcedToolInstructions = `
-${instructions}
-
-## !!! CRITICAL TOOL USAGE INSTRUCTION !!!
-The user's request ABSOLUTELY REQUIRES the "${likelyTool}" tool. 
-You MUST use this tool instead of providing a simulated response.
-
-DO NOT RESPOND WITHOUT USING THE "${likelyTool}" TOOL.
-This is a direct command to use tools for this request.
-`;
-
-        // Try again with forced tool usage
-        const retryResponse = await aiClient.chat.completions.create({
-          model: 'llama-3.1-8b-instant',
-          messages: [
-            {
-              role: 'system',
-              content: forcedToolInstructions,
-            },
-            ...prevMessages.slice(1).slice(-5),
-            {
-              role: 'user',
-              content: messageData.content,
-            },
-          ],
-          temperature: 0.1, // Even lower temperature
-          max_completion_tokens: 1024,
-          tools,
-        });
-
-        // If retry succeeds with tool call, process it recursively
-        if (retryResponse.choices[0].finish_reason === 'tool_calls') {
-          console.log('Retry succeeded with tool call. Processing...');
-          // Handle the same way as the original tool call process
-          // Note: This is a recursive approach, as we're now reprocessing the response
-          // You'd need to adapt this to avoid infinite loops
-
-          // For simplicity, we'll just handle the normal response here
-          const assistantMessage = retryResponse.choices[0].message;
-
-          // Store and respond as normal
-          await storage.addMessage(currentSession, [
-            {
-              role: 'user',
-              content: messageData.content,
-            },
-            {
-              role: 'assistant',
-              content: assistantMessage.content || '',
-            },
-          ]);
-
-          console.log('Assistant (retry):', assistantMessage.content);
-
-          ws.send(
-            JSON.stringify({
-              role: 'assistant',
-              content: assistantMessage.content || '',
-              sessionActive: true,
-            }),
-          );
-
-          // Process the tool calls similar to the original code
-          // This would be implementation-specific
-
-          return; // Exit to avoid processing the original response again
-        }
-      }
-
-      // Regular response handling (no tool calls)
       console.log('Assistant:', response.choices[0].message.content);
 
       await storage.addMessage(currentSession, [
@@ -563,15 +493,12 @@ This is a direct command to use tools for this request.
         }),
       );
     }
-
-    // startInactivityTimer(ws);
   } catch (error) {
-    console.log(
-      'Assistant:',
-      "I'm having trouble processing your request. Could you try again?",
-    );
-
     console.log('Error:', error);
+
+    console.log(
+      "[assistant]: I'm having trouble processing your request. Could you try again?",
+    );
 
     ws.send(
       JSON.stringify({
