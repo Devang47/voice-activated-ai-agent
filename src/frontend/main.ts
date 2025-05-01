@@ -42,6 +42,7 @@ const startListening = (ws: WebSocket) => {
       // Optional: Log data chunks if needed for debugging
       // logger.debug(`Sending audio chunk: ${data.length} bytes`);
       if (ws.readyState === WebSocket.OPEN) {
+        console.log('sending data');
         ws.send(data);
       }
     })
