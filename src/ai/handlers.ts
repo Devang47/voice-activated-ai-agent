@@ -66,51 +66,51 @@ export const handleNewMessage = async (
 
     console.log('User:', messageData.content);
 
-    const pass = 'wake up';
+    // const pass = 'wake up';
     // Check for authentication if needed
-    if (
-      !sessionManager.isAuthenticated() &&
-      !messageData.content.toLowerCase().includes(pass)
-    ) {
-      // If not authenticated and message doesn't contain password
-      if (messageData.content.toLowerCase().includes('lisa')) {
-        // If greeting is correct, ask for password
-        ws.send(
-          JSON.stringify({
-            role: 'assistant',
-            content:
-              'Hello! For security purposes, please provide your password.',
-            sessionActive: true,
-          }),
-        );
-        return;
-      } else {
-        // If no greeting, prompt for correct greeting
-        ws.send(
-          JSON.stringify({
-            role: 'assistant',
-            content: "I'm waiting for you to greet me properly.",
-            sessionActive: true,
-          }),
-        );
-        return;
-      }
-    } else if (
-      !sessionManager.isAuthenticated() &&
-      messageData.content.includes(pass)
-    ) {
-      // Password provided, authenticate
-      sessionManager.authenticate();
-      ws.send(
-        JSON.stringify({
-          role: 'assistant',
-          content:
-            "Hey Robin! I'm now ready to assist you. What can I help you with today?",
-          sessionActive: true,
-        }),
-      );
-      return;
-    }
+    // if (
+    //   !sessionManager.isAuthenticated() &&
+    //   !messageData.content.toLowerCase().includes(pass)
+    // ) {
+    //   // If not authenticated and message doesn't contain password
+    //   if (messageData.content.toLowerCase().includes('lisa')) {
+    //     // If greeting is correct, ask for password
+    //     ws.send(
+    //       JSON.stringify({
+    //         role: 'assistant',
+    //         content:
+    //           'Hello! For security purposes, please provide your password.',
+    //         sessionActive: true,
+    //       }),
+    //     );
+    //     return;
+    //   } else {
+    //     // If no greeting, prompt for correct greeting
+    //     ws.send(
+    //       JSON.stringify({
+    //         role: 'assistant',
+    //         content: "I'm waiting for you to greet me properly.",
+    //         sessionActive: true,
+    //       }),
+    //     );
+    //     return;
+    //   }
+    // } else if (
+    //   !sessionManager.isAuthenticated() &&
+    //   messageData.content.includes(pass)
+    // ) {
+    //   // Password provided, authenticate
+    //   sessionManager.authenticate();
+    //   ws.send(
+    //     JSON.stringify({
+    //       role: 'assistant',
+    //       content:
+    //         "Hey Robin! I'm now ready to assist you. What can I help you with today?",
+    //       sessionActive: true,
+    //     }),
+    //   );
+    //   return;
+    // }
 
     // // Enhance instructions based on message content
     // const enhancedInstructions = getEnhancedInstructions(
