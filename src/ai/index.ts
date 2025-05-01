@@ -2,7 +2,7 @@ import { WebSocket } from 'ws';
 import { handleNewMessage } from './handlers.ts';
 import { sessionManager } from './helpers.ts';
 import { logger } from '../utils/logger.ts';
-import { startRecording } from '../utils/stt.ts';
+// import { startRecording } from '../utils/stt.ts';
 import { WSMessage } from '../types/index.ts';
 
 let flag = false;
@@ -66,19 +66,4 @@ export const handleWSConnection = (ws: WebSocket) => {
       sessionActive: true,
     }),
   );
-
-  startListening(ws);
-};
-
-const startListening = (ws: WebSocket) => {
-  startRecording((text: string) => {
-    handleNewMessage(
-      JSON.stringify({
-        role: 'user',
-        content: text,
-        sessionActive: true,
-      }),
-      ws,
-    );
-  });
 };
