@@ -32,6 +32,9 @@ import { maydayCall } from '../functions/mayday.ts';
 import { fetchContacts } from '../functions/contacts.ts';
 import { handleStartInterviewMode } from '../functions/interviewMode.ts';
 import { handleInterviewMessage } from '../functions/interview.ts';
+import { handleRecordVoice } from '../utils/stt.ts';
+import { startListening } from './index.ts';
+import fs from 'fs';
 
 export interface Contact {
   id: string;
@@ -49,10 +52,52 @@ export const handleNewMessage = async (
 ) => {
   const currentSession = sessionManager.get();
   const aiClient = getOpenAiClient();
+  const messageData: WSMessage = JSON.parse(message.toString());
+
+  if (messageData.role === 'system' && !sessionManager.isAuthenticated()) {
+    console.log('Started recording ... ');
+    const recordingFile = await handleRecordVoice();
+    console.log(recordingFile);
+
+    const buffer = fs.readFileSync(recordingFile as string);
+
+    const response = await fetch('http://10.46.48.77:8000/compare', {
+      method: 'POST',
+      body: buffer,
+      headers: {
+        'Content-Type': 'audio/mpeg', // or appropriate MIME type
+      },
+    });
+    const data = await response.json();
+    console.log(data);
+
+    if (data.match) {
+      sessionManager.authenticate();
+      ws.send(
+        JSON.stringify({
+          role: 'assistant',
+          content:
+            'You are now authenticated successfully, how can I help you today?',
+          sessionActive: true,
+        }),
+      );
+
+      startListening(ws);
+    } else {
+      ws.send(
+        JSON.stringify({
+          role: 'assistant',
+          content: 'Failed to authenticate you, please try again.',
+          sessionActive: true,
+        }),
+      );
+      ws.close();
+    }
+
+    return;
+  }
 
   if (sessionManager.interviewModeOn) {
-    const messageData: WSMessage = JSON.parse(message.toString());
-
     handleInterviewMessage(messageData, ws);
 
     return;

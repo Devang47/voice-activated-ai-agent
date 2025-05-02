@@ -1,6 +1,8 @@
 import speech from '@google-cloud/speech';
 import { logger } from './logger.ts';
 import recorder from 'node-record-lpcm16';
+import fs from 'fs';
+import path from 'path';
 
 const client = new speech.SpeechClient();
 
@@ -128,3 +130,43 @@ export const stopRecording = () => {
 
   logger.info('Recording stopped');
 };
+
+export const handleRecordVoice = () =>
+  new Promise((resolve, reject) => {
+    try {
+      // Create wav directory if it doesn't exist
+      const wavDir = path.join(process.cwd(), 'wav');
+      if (!fs.existsSync(wavDir)) {
+        fs.mkdirSync(wavDir, { recursive: true });
+      }
+
+      // Generate random filename
+      const filename = `recording_${Date.now()}_${Math.floor(Math.random() * 1000)}.wav`;
+      const outputPath = path.join(wavDir, filename);
+
+      logger.info(`Starting 5-second recording to ${outputPath}`);
+
+      // Start recording
+      const recording = recorder.record({
+        sampleRateHertz: sampleRateHertz,
+        threshold: 0,
+        verbose: false,
+        recordProgram: 'arecord',
+        silence: '0.0',
+      });
+
+      // Write to file
+      const fileStream = fs.createWriteStream(outputPath);
+      recording.stream().pipe(fileStream);
+
+      // Record for 5 seconds then stop
+      setTimeout(() => {
+        recording.stop();
+        logger.info(`Recording completed and saved to ${outputPath}`);
+        resolve(outputPath);
+      }, 5000);
+    } catch (error) {
+      logger.error('Error recording voice:', error);
+      reject(error);
+    }
+  });

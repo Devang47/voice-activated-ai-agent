@@ -41,18 +41,18 @@ export const handleInterviewMessage = async (
 
     if (functionName === 'save_results_end_interview') {
       await handleSaveResultsEndInterview(functionArgs.result);
+
+      sessionManager.toggleInterviewMode();
+
+      ws.send(
+        JSON.stringify({
+          role: 'assistant',
+          content:
+            'Interview completed! Your responses have been saved successfully. Thank you for participating in the interview process.',
+          sessionActive: false,
+        }),
+      );
     }
-
-    sessionManager.toggleInterviewMode();
-
-    ws.send(
-      JSON.stringify({
-        role: 'assistant',
-        content:
-          'Interview completed! Your responses have been saved successfully. Thank you for participating in the interview process.',
-        sessionActive: false,
-      }),
-    );
   } else {
     console.log('Assistant:', response.choices[0].message.content);
 
@@ -102,7 +102,9 @@ export const tools: ChatCompletionTool[] = [
 const handleSaveResultsEndInterview = async (result: string) => {
   const uuid = 'result' + new Date().getTime();
 
-  await setDoc(doc(db, 'results', uuid), { result });
+  await setDoc(doc(db, 'results', uuid), {
+    result: result ?? 'No results for now',
+  });
 
   console.log({ result });
 };

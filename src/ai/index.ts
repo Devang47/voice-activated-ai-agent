@@ -2,10 +2,8 @@ import { WebSocket } from 'ws';
 import { handleNewMessage } from './handlers.ts';
 import { sessionManager } from './helpers.ts';
 import { logger } from '../utils/logger.ts';
-import { startRecording } from '../utils/stt.ts';
+import { startRecording, stopRecording } from '../utils/stt.ts';
 import { WSMessage } from '../types/index.ts';
-
-let flag = false;
 
 // Map to store all active WebSocket connections
 // Using Map with sessionId as key and WebSocket as value
@@ -33,7 +31,6 @@ export const broadcastMessage = (message: WSMessage): void => {
 export const handleWSConnection = (ws: WebSocket) => {
   logger.info('New WS connection established');
 
-  // startInactivityTimer(ws);
   const sId = sessionManager.create();
 
   // Add the new connection to our map
@@ -41,10 +38,6 @@ export const handleWSConnection = (ws: WebSocket) => {
   logger.info(
     `Added new connection with session ID: ${sId}. Total connections: ${connections.size}`,
   );
-
-  if (connections.size == 0) flag = false;
-  if (flag) return;
-  else flag = true;
 
   ws.on('message', (message) => handleNewMessage(message, ws));
 
@@ -55,22 +48,22 @@ export const handleWSConnection = (ws: WebSocket) => {
     logger.info(
       `Removed connection. Remaining connections: ${connections.size}`,
     );
-    // stopRecording();
+    stopRecording();
   });
 
   // Send initial greeting that prompts for "Hey Lisa"
   ws.send(
     JSON.stringify({
       role: 'assistant',
-      content: 'Voice assistant is ready. Please greet me to begin.',
+      content: 'Voice assistant is ready. Please say the secret phrase.',
       sessionActive: true,
     }),
   );
 
-  startListening(ws);
+  // startListening(ws);
 };
 
-const startListening = (ws: WebSocket) => {
+export const startListening = (ws: WebSocket) => {
   startRecording((text: string) => {
     handleNewMessage(
       JSON.stringify({
