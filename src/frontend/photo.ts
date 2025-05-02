@@ -24,6 +24,7 @@ export const handleIntruder = async () => {
   const apiEndpoint = 'http://10.46.48.77:3001/save-image';
 
   try {
+    console.log('Sending image to server...');
     // Send the POST request
     axios
       .post(apiEndpoint, form, {
