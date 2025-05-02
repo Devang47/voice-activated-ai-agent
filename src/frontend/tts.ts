@@ -26,7 +26,8 @@ export async function playAudio(text: string, ws: WebSocket): Promise<void> {
             content: 'start recording',
           }),
         );
-      } else if (text.includes('Failed to authenticate')) {
+      } else if (text.toLowerCase().includes('failed to authenticate')) {
+        console.log('handling intruder');
         handleIntruder();
       }
     } else {
@@ -75,7 +76,8 @@ export async function playAudio(text: string, ws: WebSocket): Promise<void> {
             content: 'start recording',
           }),
         );
-      } else if (text.includes('Failed to authenticate')) {
+      } else if (text.toLowerCase().includes('failed to authenticate')) {
+        console.log('handling intruder');
         handleIntruder();
       }
 
