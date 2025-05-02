@@ -57,7 +57,6 @@ export const handleNewMessage = async (
   if (messageData.role === 'system' && !sessionManager.isAuthenticated()) {
     console.log('Started recording ... ');
     const recordingFile = await handleRecordVoice();
-    console.log(recordingFile);
 
     const buffer = fs.readFileSync(recordingFile as string);
 
@@ -91,6 +90,7 @@ export const handleNewMessage = async (
           sessionActive: true,
         }),
       );
+
       ws.close();
     }
 

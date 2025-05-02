@@ -144,7 +144,7 @@ export const handleRecordVoice = () =>
       const filename = `recording_${Date.now()}_${Math.floor(Math.random() * 1000)}.wav`;
       const outputPath = path.join(wavDir, filename);
 
-      logger.info(`Starting 5-second recording to ${outputPath}`);
+      logger.info(`Starting 5-second recording to ${filename}`);
 
       // Start recording
       const recording = recorder.record({
@@ -162,7 +162,7 @@ export const handleRecordVoice = () =>
       // Record for 5 seconds then stop
       setTimeout(() => {
         recording.stop();
-        logger.info(`Recording completed and saved to ${outputPath}`);
+        logger.info(`Recording completed and saved to ${filename}`);
         resolve(outputPath);
       }, 5000);
     } catch (error) {

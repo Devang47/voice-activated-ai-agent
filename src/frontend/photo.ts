@@ -23,17 +23,19 @@ export const handleIntruder = async () => {
   // API endpoint
   const apiEndpoint = 'http://10.46.48.77:3001/save-image';
 
-  // Send the POST request
-  axios
-    .post(apiEndpoint, form, {
-      headers: form.getHeaders(),
-    })
-    .then((response) => {
-      console.log('Upload successful:', response.data);
-    })
-    .catch((error) => {
-      console.error('Error uploading image:', error.message);
-    });
+  try {
+    // Send the POST request
+    axios
+      .post(apiEndpoint, form, {
+        headers: form.getHeaders(),
+      })
+      .then((response) => {
+        console.log('Upload successful:', response.data);
+      })
+      .catch((error) => {
+        console.error('Error uploading image:', error.message);
+      });
+  } catch (error) {
+    console.log(error);
+  }
 };
-
-handleIntruder();

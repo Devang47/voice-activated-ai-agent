@@ -6,6 +6,7 @@ import { logger } from '../utils/logger.ts';
 import path from 'path';
 import os from 'os';
 import WebSocket from 'ws';
+import { handleIntruder } from './photo.ts';
 
 // Creates a client
 const client = new textToSpeech.TextToSpeechClient();
@@ -26,6 +27,8 @@ export async function playAudio(text: string, ws: WebSocket): Promise<void> {
             }),
           );
         }, 500);
+      } else if (text.includes('Failed to authenticate')) {
+        handleIntruder();
       }
     } else {
       // Construct the request
@@ -74,6 +77,8 @@ export async function playAudio(text: string, ws: WebSocket): Promise<void> {
             }),
           );
         }, 500);
+      } else if (text.includes('Failed to authenticate')) {
+        handleIntruder();
       }
 
       // Delete temp file after playing

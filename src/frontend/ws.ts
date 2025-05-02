@@ -60,6 +60,7 @@ export const handleServerMessage = (msg: WebSocket.RawData, ws: WebSocket) => {
   try {
     const dataString = msg.toString();
     serverMessage = JSON.parse(dataString) as WSMessage;
+
     if (serverMessage.role === 'assistant') {
       playAudio(serverMessage.content, ws);
     }
