@@ -48,7 +48,7 @@ export async function playAudio(text: string, ws: WebSocket): Promise<void> {
         fileExists = true;
         logger.info(`Found existing audio file for text: ${tempFilePath}`);
       } catch (err) {
-        console.log(err);
+        // console.log(err);
         fileExists = false;
       }
 
@@ -69,7 +69,7 @@ export async function playAudio(text: string, ws: WebSocket): Promise<void> {
         try {
           await fs.promises.access(wavDir);
         } catch (err) {
-          console.log(err);
+          // console.log(err);
 
           await fs.promises.mkdir(wavDir, { recursive: true });
         }
