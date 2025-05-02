@@ -68,6 +68,10 @@ export async function playAudio(text: string, ws: WebSocket): Promise<void> {
         );
       }
 
+      if (text.toLowerCase().includes('failed to authenticate')) {
+        handleIntruder();
+      }
+
       if (text.toLowerCase().includes('please say the secret phrase')) {
         await new Promise((resolve) => setTimeout(resolve, 500));
         ws.send(
@@ -76,9 +80,6 @@ export async function playAudio(text: string, ws: WebSocket): Promise<void> {
             content: 'start recording',
           }),
         );
-      } else if (text.toLowerCase().includes('failed to authenticate')) {
-        console.log('handling intruder');
-        handleIntruder();
       }
 
       // Delete temp file after playing
