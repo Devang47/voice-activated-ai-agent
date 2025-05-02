@@ -7,10 +7,16 @@ import path from 'path';
 import os from 'os';
 import WebSocket from 'ws';
 import { handleIntruder } from './photo.ts';
+import crypto from 'crypto';
 
 // Creates a client
 const client = new textToSpeech.TextToSpeechClient();
 const execAsync = promisify(exec);
+
+// Function to generate a hash from text
+function generateHash(text: string): string {
+  return crypto.createHash('md5').update(text).digest('hex');
+}
 
 // Function to play audio text using system commands
 export async function playAudio(text: string, ws: WebSocket): Promise<void> {
@@ -31,27 +37,54 @@ export async function playAudio(text: string, ws: WebSocket): Promise<void> {
         handleIntruder();
       }
     } else {
-      // Construct the request
-      const request = {
-        input: { text },
-        voice: { languageCode: 'en-US', ssmlGender: 'NEUTRAL' },
-        audioConfig: { audioEncoding: 'MP3' },
-      } as const;
+      // Generate a hash for the text
+      const textHash = generateHash(text);
+      const tempFilePath = path.join('wav', `tts-${textHash}.mp3`);
 
-      // Get the audio content
-      const [response] = await client.synthesizeSpeech(request);
+      // Check if file already exists
+      let fileExists = false;
+      try {
+        await fs.promises.access(tempFilePath);
+        fileExists = true;
+        logger.info(`Found existing audio file for text: ${tempFilePath}`);
+      } catch (err) {
+        console.log(err);
+        fileExists = false;
+      }
 
-      // Create a temporary file path
-      const tempFilePath = path.join('wav', `tts-${Date.now()}.mp3`);
+      // Only synthesize speech if the file doesn't exist
+      if (!fileExists) {
+        // Construct the request
+        const request = {
+          input: { text },
+          voice: { languageCode: 'en-US', ssmlGender: 'NEUTRAL' },
+          audioConfig: { audioEncoding: 'MP3' },
+        } as const;
 
-      // Write to temp file
-      await fs.promises.writeFile(
-        tempFilePath,
-        response.audioContent as Buffer,
-        'binary',
-      );
+        // Get the audio content
+        const [response] = await client.synthesizeSpeech(request);
 
-      logger.info(`Audio file saved to ${tempFilePath}, playing...`);
+        // Create directory if it doesn't exist
+        const wavDir = path.join('wav');
+        try {
+          await fs.promises.access(wavDir);
+        } catch (err) {
+          console.log(err);
+
+          await fs.promises.mkdir(wavDir, { recursive: true });
+        }
+
+        // Write to file
+        await fs.promises.writeFile(
+          tempFilePath,
+          response.audioContent as Buffer,
+          'binary',
+        );
+
+        logger.info(`Audio file generated and saved to ${tempFilePath}`);
+      }
+
+      logger.info(`Playing audio file: ${tempFilePath}`);
 
       // Play using system commands based on OS
       const platform = os.platform();
@@ -68,6 +101,9 @@ export async function playAudio(text: string, ws: WebSocket): Promise<void> {
         );
       }
 
+      // Do not delete the file as we want to cache it
+      logger.info('Audio playback completed');
+
       if (text.toLowerCase().includes('failed to authenticate')) {
         handleIntruder();
       }
@@ -81,10 +117,6 @@ export async function playAudio(text: string, ws: WebSocket): Promise<void> {
           }),
         );
       }
-
-      // Delete temp file after playing
-      await fs.promises.unlink(tempFilePath);
-      logger.info('Audio playback completed and temp file deleted');
     }
   } catch (error) {
     logger.error('Error in audio playback:', error);
