@@ -15,7 +15,7 @@ if (!process.env.WS_SERVER_URL) {
 export const wsConnection = connectToWebSocketServer(
   process.env.WS_SERVER_URL,
   {
-    onMessage: handleServerMessage,
+    onMessage: (msg) => handleServerMessage(msg, wsConnection),
     reconnectAttempts: 3,
     reconnectInterval: 2000,
     // onOpen: () => startRecording(wsConnection),

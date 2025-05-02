@@ -55,13 +55,13 @@ export const connectToWebSocketServer = (
   return ws;
 };
 
-export const handleServerMessage = (msg: WebSocket.RawData) => {
+export const handleServerMessage = (msg: WebSocket.RawData, ws: WebSocket) => {
   let serverMessage: WSMessage;
   try {
     const dataString = msg.toString();
     serverMessage = JSON.parse(dataString) as WSMessage;
     if (serverMessage.role === 'assistant') {
-      playAudio(serverMessage.content);
+      playAudio(serverMessage.content, ws);
     }
   } catch (error) {
     logger.error('Failed to parse server message:', error);
