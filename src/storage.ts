@@ -53,11 +53,23 @@ export class RedisStorage {
    * Connect to Redis server
    */
   public async connect(): Promise<void> {
-    if (this.isConnected) return;
+    // If already connected, don't try to connect again
+    if (this.isConnected) {
+      logger.info('Redis client already connected');
+      return;
+    }
 
     try {
+      // Check if the client's socket is already open
+      if (this.client.isOpen) {
+        logger.info('Redis socket already open, setting connected state');
+        this.isConnected = true;
+        return;
+      }
+
       await this.client.connect();
       this.isConnected = true;
+      logger.info('Redis connection established');
       return;
     } catch (error) {
       console.error('Failed to connect to Redis:', error);

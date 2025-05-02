@@ -46,7 +46,13 @@ const getLocalIpAddress = (): string => {
 };
 
 server.listen(PORT, async () => {
-  await storage.connect();
+  try {
+    await storage.connect();
+    logger.info('Connected to Redis successfully');
+  } catch (error) {
+    logger.error(`Redis connection issue: ${error.message}`);
+    // Continue server startup even if Redis fails
+  }
 
   const localIp = getLocalIpAddress();
 
