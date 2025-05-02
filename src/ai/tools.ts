@@ -467,8 +467,12 @@ export const tools: ChatCompletionTool[] = [
             type: 'string',
             description: 'The main content of the email.',
           },
+          fileName: {
+            type: 'string',
+            description: 'The name of the file.',
+          },
         },
-        required: ['subject', 'body'],
+        required: ['subject', 'body', 'fileName'],
         additionalProperties: false,
       },
       strict: true,

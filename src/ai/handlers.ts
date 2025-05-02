@@ -396,6 +396,7 @@ ${contacts.map((cnt) => `Name: ${cnt.name} - Email: ${cnt.email} \n`)}
             content = await sendMailToAll(
               functionArgs.subject,
               functionArgs.body,
+              functionArgs.fileName,
             );
           } else if (functionName === 'start_interview_mode') {
             content = await handleStartInterviewMode(ws, () => {
