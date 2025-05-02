@@ -2,28 +2,38 @@ import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
 import FormData from 'form-data';
+import { exec } from 'child_process';
+import util from 'util';
 
-// Path to the image
-const imagePath = path.join('image.jpg');
+export const handleIntruder = async () => {
+  const execPromise = util.promisify(exec);
+  const imageName = new Date().getTime() + '.jpg';
 
-// Create a read stream
-const imageStream = fs.createReadStream(imagePath);
+  await execPromise(`fswebcam -r 1280x720 --no-banner tmp/${imageName}`);
+  console.log('Image captured:', imageName);
 
-// Create form data
-const form = new FormData();
-form.append('file', imageStream);
+  const imagePath = path.join('tmp', imageName);
 
-// API endpoint
-const apiEndpoint = 'http://10.46.48.77:3001/save-image';
+  const imageStream = fs.createReadStream(imagePath);
 
-// Send the POST request
-axios
-  .post(apiEndpoint, form, {
-    headers: form.getHeaders(),
-  })
-  .then((response) => {
-    console.log('Upload successful:', response.data);
-  })
-  .catch((error) => {
-    console.error('Error uploading image:', error.message);
-  });
+  // Create form data
+  const form = new FormData();
+  form.append('file', imageStream);
+
+  // API endpoint
+  const apiEndpoint = 'http://10.46.48.77:3001/save-image';
+
+  // Send the POST request
+  axios
+    .post(apiEndpoint, form, {
+      headers: form.getHeaders(),
+    })
+    .then((response) => {
+      console.log('Upload successful:', response.data);
+    })
+    .catch((error) => {
+      console.error('Error uploading image:', error.message);
+    });
+};
+
+handleIntruder();
