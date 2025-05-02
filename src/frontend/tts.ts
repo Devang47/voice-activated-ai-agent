@@ -18,15 +18,14 @@ export async function playAudio(text: string, ws: WebSocket): Promise<void> {
     if (process.env.ENV && process.env.ENV === 'development') {
       logger.info('Skipping audio playback in development mode');
 
-      if (text.includes('Please say the secret phrase')) {
-        setTimeout(() => {
-          ws.send(
-            JSON.stringify({
-              role: 'system',
-              content: 'start recording',
-            }),
-          );
-        }, 500);
+      if (text.toLowerCase().includes('please say the secret phrase')) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        ws.send(
+          JSON.stringify({
+            role: 'system',
+            content: 'start recording',
+          }),
+        );
       } else if (text.includes('Failed to authenticate')) {
         handleIntruder();
       }
@@ -68,15 +67,14 @@ export async function playAudio(text: string, ws: WebSocket): Promise<void> {
         );
       }
 
-      if (text.includes('Please say the secret phrase')) {
-        setTimeout(() => {
-          ws.send(
-            JSON.stringify({
-              role: 'system',
-              content: 'start recording',
-            }),
-          );
-        }, 500);
+      if (text.toLowerCase().includes('please say the secret phrase')) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        ws.send(
+          JSON.stringify({
+            role: 'system',
+            content: 'start recording',
+          }),
+        );
       } else if (text.includes('Failed to authenticate')) {
         handleIntruder();
       }

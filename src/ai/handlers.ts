@@ -64,7 +64,7 @@ export const handleNewMessage = async (
       method: 'POST',
       body: buffer,
       headers: {
-        'Content-Type': 'audio/mpeg', // or appropriate MIME type
+        'Content-Type': 'audio/mpeg',
       },
     });
     const data = await response.json();
@@ -86,12 +86,10 @@ export const handleNewMessage = async (
       ws.send(
         JSON.stringify({
           role: 'assistant',
-          content: 'Failed to authenticate you, please try again.',
+          content: 'Failed to authenticate you, please say the secret phrase.',
           sessionActive: true,
         }),
       );
-
-      ws.close();
     }
 
     return;
