@@ -13,7 +13,10 @@ const execAsync = promisify(exec);
 // Function to play audio text using system commands
 export async function playAudio(text: string): Promise<void> {
   try {
-    logger.info(`Synthesizing speech for: "${text}"`);
+    if (process.env.ENV && process.env.ENV === 'development') {
+      logger.info('Skipping audio playback in development mode');
+      return;
+    }
 
     // Construct the request
     const request = {
@@ -26,7 +29,7 @@ export async function playAudio(text: string): Promise<void> {
     const [response] = await client.synthesizeSpeech(request);
 
     // Create a temporary file path
-    const tempFilePath = path.join(`tts-${Date.now()}.mp3`);
+    const tempFilePath = path.join('wav', `tts-${Date.now()}.mp3`);
 
     // Write to temp file
     await fs.promises.writeFile(
