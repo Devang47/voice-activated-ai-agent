@@ -21,7 +21,7 @@ export async function playAudio(text: string, ws: WebSocket): Promise<void> {
         setTimeout(() => {
           ws.send(
             JSON.stringify({
-              role: 'user',
+              role: 'system',
               content: 'start recording',
             }),
           );

@@ -32,8 +32,6 @@ class SessionManager {
   private static instance: SessionManager;
   private sessionId: string | null = null;
   private authenticated = false;
-  private authTimer: NodeJS.Timeout | null = null;
-  private authTimeout = 120000; // 2 minutes in milliseconds
   public interviewModeOn = false;
 
   // Singleton pattern
@@ -56,16 +54,6 @@ class SessionManager {
 
   public authenticate(): void {
     this.authenticated = true;
-
-    // Set authentication timeout
-    if (this.authTimer) {
-      clearTimeout(this.authTimer);
-    }
-
-    this.authTimer = setTimeout(() => {
-      this.authenticated = false;
-      logger.info('Authentication expired');
-    }, this.authTimeout);
   }
 
   public isAuthenticated(): boolean {
@@ -73,13 +61,7 @@ class SessionManager {
   }
 
   public resetAuthTimer(): void {
-    if (this.authenticated && this.authTimer) {
-      clearTimeout(this.authTimer);
-      this.authTimer = setTimeout(() => {
-        this.authenticated = false;
-        logger.info('Authentication expired');
-      }, this.authTimeout);
-    }
+    this.authenticated = false;
   }
 
   public toggleInterviewMode(): void {
@@ -98,10 +80,6 @@ export const getOpenAiClient = () => {
 
   try {
     client = new Groq({ apiKey: process.env.GROQ_API_KEY });
-    // client = new OpenAI({
-    //   apiKey: process.env.GROQ_API_KEY,
-    //   baseURL: 'https://api.groq.com/openai/v1',
-    // });
     return client;
   } catch (error) {
     console.error('Failed to initialize AI client:', error);
